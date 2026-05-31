@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 from typing import Dict
 from config import SCORING_WEIGHTS, ADAPTIVE_WEIGHT_ENABLED, ADAPTIVE_WEIGHT_WINDOW
-from storage.history import HistoryStore
+from history import HistoryStore
 
 
 def _adaptive_weights(history_store: HistoryStore) -> Dict[str, float]:

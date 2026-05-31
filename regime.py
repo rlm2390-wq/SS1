@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 from typing import Tuple, Dict, Any
 
-from storage.history import HistoryStore
+from history import HistoryStore
 
 
 # ── Sub-scores ────────────────────────────────────────────────────────────────

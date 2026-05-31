@@ -124,6 +124,24 @@
   .scanning-ticker{color:var(--accent);font-size:18px;font-family:'Syne',sans-serif;font-weight:700;margin:8px 0}
   .scanning-sub{font-size:11px;letter-spacing:1px}
 
+  /* Error banner */
+  .error-banner{display:none;position:fixed;bottom:24px;right:24px;z-index:2000;background:#1a0a0e;border:1px solid var(--danger);border-radius:6px;padding:14px 18px;max-width:360px;box-shadow:0 4px 24px rgba(255,64,96,.2)}
+  .error-banner.visible{display:block;animation:fadeIn .3s ease}
+  .error-banner-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--danger);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .error-banner-msg{font-size:11px;color:var(--text);line-height:1.6;word-break:break-word}
+  .error-banner-time{font-size:10px;color:var(--muted);margin-top:6px}
+  .error-banner-close{position:absolute;top:10px;right:12px;cursor:pointer;color:var(--muted);font-size:14px;line-height:1;background:none;border:none;padding:0}
+  .error-banner-close:hover{color:var(--danger)}
+
+  /* Tooltips */
+  [data-tip]{position:relative;cursor:help}
+  [data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a2530;border:1px solid var(--border);color:var(--text);font-size:10px;line-height:1.5;padding:6px 10px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:100}
+  [data-tip]:hover::after{opacity:1}
+
+  /* Keyboard shortcut hint */
+  .kbd-hint{font-size:10px;color:var(--muted);letter-spacing:.5px}
+  .kbd{display:inline-block;padding:1px 5px;border:1px solid var(--muted);border-radius:3px;font-size:9px;color:var(--muted)}
+
   @media(max-width:900px){
     header{padding:14px 16px}
     .main{padding:20px 16px}
@@ -149,28 +167,37 @@
       <span id="regimeScore">–</span>
     </div>
     <button class="scan-btn" id="scanBtn" onclick="triggerScan()">▶ Run Scan</button>
+    <span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">R</span></span>
   </div>
 </header>
+
+<!-- Error banner (shown after repeated API failures) -->
+<div class="error-banner" id="errorBanner" role="alert">
+  <button class="error-banner-close" onclick="dismissError()" aria-label="Dismiss">✕</button>
+  <div class="error-banner-title">⚠ API Error</div>
+  <div class="error-banner-msg" id="errorMsg">Unable to reach the server.</div>
+  <div class="error-banner-time" id="errorTime"></div>
+</div>
 
 <div class="main">
   <div class="stats-bar">
     <div class="stat-card">
-      <div class="stat-label">Tickers Scanned</div>
+      <div class="stat-label" data-tip="Total tickers that returned valid data this scan">Tickers Scanned</div>
       <div class="stat-value" id="statTotal">–</div>
       <div class="stat-sub" id="statTime">Not yet run</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Alerts Fired</div>
+      <div class="stat-label" data-tip="Tickers that passed all alert thresholds (upside, risk, setup, regime)">Alerts Fired</div>
       <div class="stat-value" id="statAlerts">–</div>
       <div class="stat-sub">Passed all filters</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Avg Upside Score</div>
+      <div class="stat-label" data-tip="Mean composite upside score (0–1) across all scanned tickers">Avg Upside Score</div>
       <div class="stat-value" id="statAvgUpside">–</div>
       <div class="stat-sub">Across universe</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Market Regime</div>
+      <div class="stat-label" data-tip="Current macro regime derived from SPY, VIX, breadth, and momentum signals">Market Regime</div>
       <div class="stat-value" id="statRegime" style="font-size:16px;margin-top:4px">–</div>
       <div class="stat-sub" id="statRegimeSub">–</div>
     </div>
@@ -221,6 +248,44 @@ const REGIME_COLORS = {
   choppy:'#ffb800', risk_off:'#ff8040', panic:'#ff4060', unknown:'#3a4a5a'
 };
 
+// ── Error tracking ────────────────────────────────────────────────────────────
+let _apiErrorCount    = 0;
+let _lastApiErrorTime = null;
+const API_ERROR_THRESHOLD = 3;   // show banner after this many consecutive failures
+const FETCH_TIMEOUT_MS    = 5000;
+
+function _logApiError(context, err){
+  _apiErrorCount++;
+  _lastApiErrorTime = new Date();
+  const ts = _lastApiErrorTime.toISOString();
+  console.error(`[${ts}] API error (${context}) [attempt ${_apiErrorCount}]:`, err);
+  if(_apiErrorCount >= API_ERROR_THRESHOLD){
+    showErrorBanner(`${err.message || err}`, _lastApiErrorTime);
+  }
+}
+
+function _clearApiErrors(){
+  if(_apiErrorCount > 0){
+    console.info(`[${new Date().toISOString()}] API recovered after ${_apiErrorCount} failure(s)`);
+  }
+  _apiErrorCount = 0;
+}
+
+function showErrorBanner(msg, time){
+  document.getElementById('errorMsg').textContent  = msg;
+  document.getElementById('errorTime').textContent = 'Last error: ' + time.toLocaleTimeString();
+  document.getElementById('errorBanner').classList.add('visible');
+}
+
+function dismissError(){
+  document.getElementById('errorBanner').classList.remove('visible');
+  _apiErrorCount = 0;
+}
+
+// ── Cached DOM refs ───────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function scoreClass(v){ return v>=.65?'score-hi':v>=.45?'score-mid':'score-lo' }
 function riskClass(v){ return v>=.6?'risk-hi':v>=.4?'risk-mid':'risk-lo' }
 function pct(v){ return Math.round(v*100)+'%' }
@@ -241,17 +306,17 @@ function renderCard(r,i){
       </div>
       <div>
         <div class="card-price-label">LAST PRICE</div>
-        <div class="card-price">$${r.last_price?r.last_price.toFixed(2):'—'}</div>
+        <div class="card-price">${r.last_price?r.last_price.toFixed(2):'—'}</div>
       </div>
     </div>
-    <div class="score-row"><div class="score-label">Upside</div><div class="score-bar-wrap"><div class="score-bar bar-upside" style="width:${pct(r.upside)}"></div></div><div class="score-value ${scoreClass(r.upside)}">${fmt(r.upside)}</div></div>
-    <div class="score-row"><div class="score-label">Risk</div><div class="score-bar-wrap"><div class="score-bar bar-risk" style="width:${pct(r.risk)}"></div></div><div class="score-value ${riskClass(r.risk)}">${fmt(r.risk)}</div></div>
-    <div class="score-row"><div class="score-label">Setup</div><div class="score-bar-wrap"><div class="score-bar bar-setup" style="width:${pct(r.setup_score||0)}"></div></div><div class="score-value">${fmt(r.setup_score||0)}</div></div>
+    <div class="score-row"><div class="score-label" data-tip="Composite upside score (0–1). Higher = stronger opportunity.">Upside</div><div class="score-bar-wrap"><div class="score-bar bar-upside" style="width:${pct(r.upside)}"></div></div><div class="score-value ${scoreClass(r.upside)}">${fmt(r.upside)}</div></div>
+    <div class="score-row"><div class="score-label" data-tip="Risk score (0–1). Lower is safer. Combines volatility, drawdown, and liquidity.">Risk</div><div class="score-bar-wrap"><div class="score-bar bar-risk" style="width:${pct(r.risk)}"></div></div><div class="score-value ${riskClass(r.risk)}">${fmt(r.risk)}</div></div>
+    <div class="score-row"><div class="score-label" data-tip="Setup quality score (0–1). Measures pattern strength across detected setups.">Setup</div><div class="score-bar-wrap"><div class="score-bar bar-setup" style="width:${pct(r.setup_score||0)}"></div></div><div class="score-value">${fmt(r.setup_score||0)}</div></div>
     <div style="border-top:1px solid var(--border);margin:12px 0 10px;padding-top:10px">
-      <div class="score-row"><div class="score-label">Tech</div><div class="score-bar-wrap"><div class="score-bar bar-tech" style="width:${pct(f.technical||0)}"></div></div><div class="score-value">${fmt(f.technical||0)}</div></div>
-      <div class="score-row"><div class="score-label">Fund</div><div class="score-bar-wrap"><div class="score-bar bar-fund" style="width:${pct(f.fundamental||0)}"></div></div><div class="score-value">${fmt(f.fundamental||0)}</div></div>
-      <div class="score-row"><div class="score-label">Sent</div><div class="score-bar-wrap"><div class="score-bar bar-sent" style="width:${pct(f.sentiment||0)}"></div></div><div class="score-value">${fmt(f.sentiment||0)}</div></div>
-      <div class="score-row"><div class="score-label">Struct</div><div class="score-bar-wrap"><div class="score-bar bar-struct" style="width:${pct(f.structural||0)}"></div></div><div class="score-value">${fmt(f.structural||0)}</div></div>
+      <div class="score-row"><div class="score-label" data-tip="Technical score: trend, momentum, RSI, Bollinger Bands, moving averages.">Tech</div><div class="score-bar-wrap"><div class="score-bar bar-tech" style="width:${pct(f.technical||0)}"></div></div><div class="score-value">${fmt(f.technical||0)}</div></div>
+      <div class="score-row"><div class="score-label" data-tip="Fundamental score: revenue growth, margins, PEG ratio, EV/Sales vs sector.">Fund</div><div class="score-bar-wrap"><div class="score-bar bar-fund" style="width:${pct(f.fundamental||0)}"></div></div><div class="score-value">${fmt(f.fundamental||0)}</div></div>
+      <div class="score-row"><div class="score-label" data-tip="Sentiment score: news tone, short interest, insider activity, options flow.">Sent</div><div class="score-bar-wrap"><div class="score-bar bar-sent" style="width:${pct(f.sentiment||0)}"></div></div><div class="score-value">${fmt(f.sentiment||0)}</div></div>
+      <div class="score-row"><div class="score-label" data-tip="Structural score: float, institutional ownership, analyst target vs price.">Struct</div><div class="score-bar-wrap"><div class="score-bar bar-struct" style="width:${pct(f.structural||0)}"></div></div><div class="score-value">${fmt(f.structural||0)}</div></div>
     </div>
     <div class="setups-row">${setupTags(r.setups)}</div>
   </div>`;
@@ -264,7 +329,7 @@ function renderTable(rows){
     return `<tr>
       <td class="td-ticker">${r.ticker}</td>
       <td style="color:var(--muted);font-size:11px">${r.sector||'—'}</td>
-      <td>$${r.last_price?r.last_price.toFixed(2):'—'}</td>
+      <td>${r.last_price?r.last_price.toFixed(2):'—'}</td>
       <td class="td-score ${scoreClass(r.upside)}">${miniBar(r.upside,'bar-upside')}${fmt(r.upside)}</td>
       <td class="${riskClass(r.risk)}">${fmt(r.risk)}</td>
       <td>${miniBar(f.technical||0,'bar-tech')}${fmt(f.technical||0)}</td>
@@ -277,71 +342,90 @@ function renderTable(rows){
 }
 
 let _prevScanning = false;
-let _prevAlerts = [];
+let _prevAlerts   = [];
 
 async function fetchResults(){
+  const t0 = performance.now();
   try{
-    const res  = await fetch('/api/results');
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(()=>controller.abort(), FETCH_TIMEOUT_MS);
+
+    let res;
+    try{
+      res = await fetch('/api/results', {signal: controller.signal});
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if(!res.ok){
+      throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    }
+
     const data = await res.json();
+    const elapsed = Math.round(performance.now() - t0);
+    console.debug(`[fetchResults] ${elapsed}ms`);
+    _clearApiErrors();
 
     const rl = data.regime?.label||'unknown';
     const rs = data.regime?.score||0;
     const rc = REGIME_COLORS[rl]||'#3a4a5a';
-    document.getElementById('regimeLabel').textContent = rl.replace(/_/g,' ').toUpperCase();
-    document.getElementById('regimeScore').textContent = rs.toFixed(3);
-    document.getElementById('regimeDot').style.cssText = `background:${rc};box-shadow:0 0 8px ${rc}`;
-    document.getElementById('statRegime').textContent = rl.replace(/_/g,' ');
-    document.getElementById('statRegimeSub').textContent = `Score: ${rs.toFixed(3)}`;
+    $('regimeLabel').textContent = rl.replace(/_/g,' ').toUpperCase();
+    $('regimeScore').textContent = rs.toFixed(3);
+    $('regimeDot').style.cssText = `background:${rc};box-shadow:0 0 8px ${rc}`;
+    $('statRegime').textContent    = rl.replace(/_/g,' ');
+    $('statRegimeSub').textContent = `Score: ${rs.toFixed(3)}`;
 
-    document.getElementById('statTotal').textContent  = data.total||0;
-    document.getElementById('statAlerts').textContent = (data.alerts||[]).length;
+    $('statTotal').textContent  = data.total||0;
+    $('statAlerts').textContent = (data.alerts||[]).length;
     const top = data.top||[];
     const avg = top.length?(top.reduce((a,r)=>a+r.upside,0)/top.length).toFixed(3):'–';
-    document.getElementById('statAvgUpside').textContent = avg;
+    $('statAvgUpside').textContent = avg;
 
     if(data.scan_time){
       const d = new Date(data.scan_time);
-      document.getElementById('statTime').textContent = 'Last: '+d.toLocaleTimeString();
-      document.getElementById('scanMeta').textContent = 'Last scan: '+d.toLocaleString()+' · Data via Yahoo Finance';
+      $('statTime').textContent  = 'Last: '+d.toLocaleTimeString();
+      const stats = data.scan_stats||{};
+      const durStr = stats.duration_s != null ? ` · ${stats.duration_s}s` : '';
+      $('scanMeta').textContent = 'Last scan: '+d.toLocaleString()+durStr+' · Data via Yahoo Finance';
     }
 
     // Progress
-    const prog = data.progress||{};
+    const prog  = data.progress||{};
     const total = prog.total||0;
     const curr  = prog.current||0;
     if(data.is_scanning && total > 0){
-      const pct = Math.round((curr/total)*100);
-      document.getElementById('progressWrap').classList.add('active');
-      document.getElementById('progressBar').style.width = pct+'%';
-      document.getElementById('progressLabel').classList.add('active');
-      document.getElementById('progressLabel').textContent = `SCANNING ${prog.ticker||''} · ${curr}/${total}`;
-      document.getElementById('scanningTicker').textContent = `⟳ Scanning ${prog.ticker||''}… (${curr}/${total})`;
+      const p = Math.round((curr/total)*100);
+      $('progressWrap').classList.add('active');
+      $('progressBar').style.width = p+'%';
+      $('progressLabel').classList.add('active');
+      $('progressLabel').textContent = `SCANNING ${prog.ticker||''} · ${curr}/${total}`;
+      $('scanningTicker').textContent = `⟳ Scanning ${prog.ticker||''}… (${curr}/${total})`;
     } else {
-      document.getElementById('progressWrap').classList.remove('active');
-      document.getElementById('progressLabel').classList.remove('active');
+      $('progressWrap').classList.remove('active');
+      $('progressLabel').classList.remove('active');
     }
 
     // Alerts
     const alerts = data.alerts||[];
-    document.getElementById('alertCount').textContent = alerts.length;
+    $('alertCount').textContent = alerts.length;
     const alertsJson = JSON.stringify(alerts);
     if(alertsJson !== JSON.stringify(_prevAlerts)){
       if(alerts.length){
-        document.getElementById('alertsGrid').innerHTML = alerts.map((r,i)=>renderCard(r,i)).join('');
+        $('alertsGrid').innerHTML = alerts.map((r,i)=>renderCard(r,i)).join('');
       } else if(!data.is_scanning && data.total > 0){
-        document.getElementById('alertsGrid').innerHTML = `<div class="empty"><div class="empty-icon">📡</div><div class="empty-text">No tickers passed all alert thresholds this scan.<br>Top results are shown in the table below.</div></div>`;
+        $('alertsGrid').innerHTML = `<div class="empty"><div class="empty-icon">📡</div><div class="empty-text">No tickers passed all alert thresholds this scan.<br>Top results are shown in the table below.</div></div>`;
       }
       _prevAlerts = alerts;
     }
 
     // Table
-    document.getElementById('topCount').textContent = top.length;
+    $('topCount').textContent = top.length;
     if(!data.is_scanning || top.length > 0){
-      document.getElementById('resultsBody').innerHTML = renderTable(top);
+      $('resultsBody').innerHTML = renderTable(top);
     }
 
     // Scan button
-    const btn = document.getElementById('scanBtn');
+    const btn = $('scanBtn');
     if(data.is_scanning){
       btn.textContent = '⟳ Scanning…';
       btn.classList.add('scanning');
@@ -353,12 +437,28 @@ async function fetchResults(){
     }
     _prevScanning = data.is_scanning;
 
-  }catch(e){ console.error(e) }
+  } catch(e) {
+    _logApiError('fetchResults', e);
+  }
 }
 
 async function triggerScan(){
-  await fetch('/api/scan',{method:'POST'});
+  try{
+    const res = await fetch('/api/scan', {method:'POST'});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+  } catch(e){
+    _logApiError('triggerScan', e);
+  }
 }
+
+// ── Keyboard shortcut: Ctrl+R → run scan ─────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if(e.ctrlKey && e.key === 'r'){
+    e.preventDefault();
+    const btn = $('scanBtn');
+    if(!btn.disabled) triggerScan();
+  }
+});
 
 fetchResults();
 setInterval(fetchResults, 2500);

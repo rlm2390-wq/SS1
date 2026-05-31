@@ -9,6 +9,10 @@
 # ─────────────────────────────────────────────
 from __future__ import annotations
 import datetime
+import logging
+import re
+import time
+from functools import lru_cache
 import numpy as np
 from typing import Dict, Any
 
@@ -17,6 +21,42 @@ try:
     YF_AVAILABLE = True
 except ImportError:
     YF_AVAILABLE = False
+
+logger = logging.getLogger("market_data")
+
+# ── Ticker validation ─────────────────────────────────────────────────────────
+_TICKER_RE = re.compile(r"^[A-Z0-9.\-\^]{1,10}$")
+
+def _valid_ticker(ticker: str) -> bool:
+    """Return True if ticker looks like a real symbol."""
+    return bool(ticker and _TICKER_RE.match(ticker.upper()))
+
+# ── Simple TTL cache for yfinance calls ───────────────────────────────────────
+_CACHE_TTL_SECONDS = 300   # 5 minutes
+
+class _TTLCache:
+    """Thread-safe dict-based TTL cache."""
+    def __init__(self, ttl: int = _CACHE_TTL_SECONDS):
+        self._store: Dict[str, tuple] = {}
+        self._ttl = ttl
+
+    def get(self, key: str):
+        entry = self._store.get(key)
+        if entry is None:
+            return None
+        value, ts = entry
+        if time.monotonic() - ts > self._ttl:
+            del self._store[key]
+            return None
+        logger.debug("Cache hit: %s", key)
+        return value
+
+    def set(self, key: str, value) -> None:
+        self._store[key] = (value, time.monotonic())
+
+_index_cache  = _TTLCache()
+_stock_cache  = _TTLCache()
+_sector_cache = _TTLCache(ttl=3600)   # sector medians change rarely
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -63,19 +103,38 @@ def _bb_width(prices: np.ndarray, window: int = 20) -> float:
 def get_index_data() -> Dict[str, Any]:
     """
     Fetch SPY, QQQ, IWM prices and VIX from Yahoo Finance.
+    Results are cached for 5 minutes to avoid redundant API calls.
     """
     if not YF_AVAILABLE:
         raise RuntimeError("yfinance not installed. Run: pip install yfinance")
 
+    cached = _index_cache.get("index_data")
+    if cached is not None:
+        logger.info("get_index_data: returning cached result")
+        return cached
+
+    logger.info("get_index_data: fetching from Yahoo Finance")
+
     def _fetch(ticker, period="1y"):
-        t = yf.Ticker(ticker)
-        hist = t.history(period=period)
-        return hist["Close"].values.astype(float)
+        try:
+            t    = yf.Ticker(ticker)
+            hist = t.history(period=period, timeout=10)
+            if hist.empty:
+                logger.warning("Empty history for index ticker %s", ticker)
+                return np.array([])
+            return hist["Close"].values.astype(float)
+        except Exception as exc:
+            logger.error("Failed to fetch history for %s: %s", ticker, exc)
+            return np.array([])
 
     spy = _fetch("SPY")
     qqq = _fetch("QQQ")
     iwm = _fetch("IWM")
     vix = _fetch("^VIX")
+
+    # Validate we got usable data for the primary index
+    if len(spy) < 20:
+        raise RuntimeError("Insufficient SPY data returned from Yahoo Finance")
 
     # Breadth proxy: use % of Dow 30 above their 50-day MA
     dow30 = ["AAPL","MSFT","JPM","JNJ","V","WMT","PG","UNH","HD","CVX",
@@ -84,12 +143,12 @@ def get_index_data() -> Dict[str, Any]:
     above_50 = 0
     for sym in dow30[:15]:   # limit to 15 to avoid rate limits
         try:
-            h = yf.Ticker(sym).history(period="3mo")["Close"].values
+            h = yf.Ticker(sym).history(period="3mo", timeout=10)["Close"].values
             ma = _moving_average(h, 50)
-            if not np.isnan(ma[-1]) and h[-1] > ma[-1]:
+            if len(ma) and not np.isnan(ma[-1]) and h[-1] > ma[-1]:
                 above_50 += 1
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Breadth calc skipped for %s: %s", sym, exc)
     breadth = above_50 / 15.0
 
     # Put/call ratio from VIX as proxy (no free source; use VIX level)
@@ -98,7 +157,7 @@ def get_index_data() -> Dict[str, Any]:
     # Rough put/call proxy: high VIX → high P/C
     pc_proxy = float(np.clip(vix_cur / 20.0 * 0.85, 0.4, 2.0))
 
-    return {
+    result = {
         "spy_prices":  spy,
         "qqq_prices":  qqq,
         "iwm_prices":  iwm,
@@ -112,6 +171,8 @@ def get_index_data() -> Dict[str, Any]:
         "put_call_ratio": pc_proxy,
         "advance_decline": 1.0,   # placeholder; no free real-time source
     }
+    _index_cache.set("index_data", result)
+    return result
 
 
 # ── Stock data ────────────────────────────────────────────────────────────────
@@ -119,15 +180,31 @@ def get_index_data() -> Dict[str, Any]:
 def get_stock_data(ticker: str, lookback_days: int = 252) -> Dict[str, Any]:
     """
     Fetch all per-stock data needed by every brain.
+    Results are cached per ticker for 5 minutes.
     """
     if not YF_AVAILABLE:
         raise RuntimeError("yfinance not installed. Run: pip install yfinance")
 
-    t    = yf.Ticker(ticker)
-    hist = t.history(period="1y")
-    info = t.info or {}
+    if not _valid_ticker(ticker):
+        logger.warning("get_stock_data: invalid ticker format %r — skipping", ticker)
+        return {}
+
+    cache_key = f"{ticker}:{lookback_days}"
+    cached = _stock_cache.get(cache_key)
+    if cached is not None:
+        logger.debug("get_stock_data: cache hit for %s", ticker)
+        return cached
+
+    try:
+        t    = yf.Ticker(ticker)
+        hist = t.history(period="1y", timeout=10)
+        info = t.info or {}
+    except Exception as exc:
+        logger.error("get_stock_data: yfinance fetch failed for %s: %s", ticker, exc)
+        return {}
 
     if hist.empty or len(hist) < 20:
+        logger.warning("get_stock_data: insufficient history for %s (%d rows)", ticker, len(hist))
         return {}   # validation brain will reject this
 
     prices  = hist["Close"].values.astype(float)
@@ -251,7 +328,7 @@ def get_stock_data(ticker: str, lookback_days: int = 252) -> Dict[str, Any]:
     except Exception:
         pass
 
-    return {
+    result = {
         "ticker":             ticker,
         "sector":             info.get("sector") or info.get("industry") or "Unknown",
         "prices":             prices,
@@ -276,6 +353,9 @@ def get_stock_data(ticker: str, lookback_days: int = 252) -> Dict[str, Any]:
             _safe(info.get("targetMeanPrice"), last) / (last + 1e-9) - 1.0
         ),
     }
+
+    _stock_cache.set(cache_key, result)
+    return result
 
 
 # ── Sector stats ──────────────────────────────────────────────────────────────
@@ -302,11 +382,20 @@ def get_sector_stats(ticker: str) -> Dict[str, Any]:
     """
     Return sector-median valuation benchmarks for relative scoring.
     Looks up the ticker's sector first, then returns the right medians.
+    Results are cached per ticker for 1 hour.
     """
+    cached = _sector_cache.get(ticker)
+    if cached is not None:
+        logger.debug("get_sector_stats: cache hit for %s", ticker)
+        return cached
+
     try:
         info   = yf.Ticker(ticker).info or {}
         sector = info.get("sector") or "Unknown"
-    except Exception:
+    except Exception as exc:
+        logger.warning("get_sector_stats: failed to fetch sector for %s: %s", ticker, exc)
         sector = "Unknown"
 
-    return _SECTOR_MEDIANS.get(sector, _SECTOR_MEDIANS["Unknown"])
+    result = _SECTOR_MEDIANS.get(sector, _SECTOR_MEDIANS["Unknown"])
+    _sector_cache.set(ticker, result)
+    return result

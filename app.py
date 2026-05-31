@@ -22,7 +22,7 @@ from history import HistoryStore
 import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
 from main import score_ticker, should_alert
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=".")
 
 # ── Shared scan state ─────────────────────────────────────────────────────────
 _scan_lock    = threading.Lock()

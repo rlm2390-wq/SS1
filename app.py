@@ -5,50 +5,59 @@ from __future__ import annotations
 import sys
 import os
 
-# Ensure the project root is on sys.path so subpackages (data/, brains/, etc.)
-# are importable regardless of where gunicorn is invoked from.
+# Ensure project root is on sys.path regardless of where gunicorn launches from
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import json
 import datetime
 import threading
-import time
 from flask import Flask, render_template, jsonify
 
 from config import ALERT_CONFIG, HISTORY_CONFIG
-from universe import get_universe
-from market_data import get_index_data, get_stock_data, get_sector_stats
-from history import HistoryStore
-import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
+from data.universe import get_universe
+from data.market_data import get_index_data, get_stock_data, get_sector_stats
+from storage.history import HistoryStore
+from brains import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
 from main import score_ticker, should_alert
 
-app = Flask(__name__, template_folder=".")
+app = Flask(__name__)
 
 # ── Shared scan state ─────────────────────────────────────────────────────────
-_scan_lock    = threading.Lock()
-_last_results = []
-_last_alerts  = []
-_last_regime  = {"label": "unknown", "score": 0.0}
+_scan_lock      = threading.Lock()
+_last_results   = []
+_last_alerts    = []
+_last_regime    = {"label": "unknown", "score": 0.0}
 _last_scan_time = None
-_is_scanning  = False
+_is_scanning    = False
+_scan_progress  = {"current": 0, "total": 0, "ticker": ""}
 
 
 def run_scan_background():
-    global _last_results, _last_alerts, _last_regime, _last_scan_time, _is_scanning
+    global _last_results, _last_alerts, _last_regime, _last_scan_time
+    global _is_scanning, _scan_progress
 
     with _scan_lock:
         _is_scanning = True
+        _scan_progress = {"current": 0, "total": 0, "ticker": ""}
 
     try:
         history_store = HistoryStore()
-        index_data    = get_index_data()
-        rl, rs        = regime.compute_market_context(index_data, history_store)
+
+        # Market context
+        index_data = get_index_data()
+        rl, rs     = regime.compute_market_context(index_data, history_store)
 
         tickers = get_universe()
+        with _scan_lock:
+            _scan_progress["total"] = len(tickers)
+
         results = []
         alerts  = []
 
-        for ticker in tickers:
+        for i, ticker in enumerate(tickers):
+            with _scan_lock:
+                _scan_progress["current"] = i + 1
+                _scan_progress["ticker"]  = ticker
+
             result = score_ticker(ticker, rl, rs, history_store)
             if result is None:
                 continue
@@ -65,6 +74,9 @@ def run_scan_background():
             _last_alerts    = alerts
             _last_regime    = {"label": rl, "score": round(rs, 3)}
             _last_scan_time = datetime.datetime.utcnow().isoformat() + "Z"
+
+    except Exception as e:
+        print(f"[scan error] {e}")
     finally:
         with _scan_lock:
             _is_scanning = False
@@ -83,7 +95,6 @@ def index():
 
 @app.route("/api/scan", methods=["POST"])
 def trigger_scan():
-    global _is_scanning
     with _scan_lock:
         if _is_scanning:
             return jsonify({"status": "already_running"})
@@ -95,12 +106,13 @@ def trigger_scan():
 def api_results():
     with _scan_lock:
         return jsonify({
-            "regime":     _last_regime,
-            "scan_time":  _last_scan_time,
+            "regime":      _last_regime,
+            "scan_time":   _last_scan_time,
             "is_scanning": _is_scanning,
-            "total":      len(_last_results),
-            "alerts":     _last_alerts[:20],
-            "top":        _last_results[:30],
+            "progress":    dict(_scan_progress),
+            "total":       len(_last_results),
+            "alerts":      _last_alerts[:20],
+            "top":         _last_results[:50],
         })
 
 

@@ -2,6 +2,13 @@
 #  app.py  –  Flask web server
 # ─────────────────────────────────────────────
 from __future__ import annotations
+import sys
+import os
+
+# Ensure the project root is on sys.path so subpackages (data/, brains/, etc.)
+# are importable regardless of where gunicorn is invoked from.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import json
 import datetime
 import threading
@@ -98,6 +105,5 @@ def api_results():
 
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)

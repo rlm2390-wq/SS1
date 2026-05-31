@@ -7,11 +7,11 @@ import sys
 from typing import Dict, Any, List
 
 from config import ALERT_CONFIG, HISTORY_CONFIG
-from data.universe import get_universe
-from data.market_data import get_index_data, get_stock_data, get_sector_stats
-from storage.history import HistoryStore
-from brains import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
-from alerts.notifier import send_alert
+from universe import get_universe
+from market_data import get_index_data, get_stock_data, get_sector_stats
+from history import HistoryStore
+import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
+from notifier import send_alert
 
 
 # ── Alert filter ──────────────────────────────────────────────────────────────

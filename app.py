@@ -16,10 +16,10 @@ import time
 from flask import Flask, render_template, jsonify
 
 from config import ALERT_CONFIG, HISTORY_CONFIG
-from data.universe import get_universe
-from data.market_data import get_index_data, get_stock_data, get_sector_stats
-from storage.history import HistoryStore
-from brains import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
+from universe import get_universe
+from market_data import get_index_data, get_stock_data, get_sector_stats
+from history import HistoryStore
+import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
 from main import score_ticker, should_alert
 
 app = Flask(__name__)

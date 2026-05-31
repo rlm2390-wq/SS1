@@ -277,6 +277,7 @@ function renderTable(rows){
 }
 
 let _prevScanning = false;
+let _prevAlerts = [];
 
 async function fetchResults(){
   try{
@@ -323,10 +324,14 @@ async function fetchResults(){
     // Alerts
     const alerts = data.alerts||[];
     document.getElementById('alertCount').textContent = alerts.length;
-    if(alerts.length){
-      document.getElementById('alertsGrid').innerHTML = alerts.map((r,i)=>renderCard(r,i)).join('');
-    } else if(!data.is_scanning && data.total > 0){
-      document.getElementById('alertsGrid').innerHTML = `<div class="empty"><div class="empty-icon">📡</div><div class="empty-text">No tickers passed all alert thresholds this scan.<br>Top results are shown in the table below.</div></div>`;
+    const alertsJson = JSON.stringify(alerts);
+    if(alertsJson !== JSON.stringify(_prevAlerts)){
+      if(alerts.length){
+        document.getElementById('alertsGrid').innerHTML = alerts.map((r,i)=>renderCard(r,i)).join('');
+      } else if(!data.is_scanning && data.total > 0){
+        document.getElementById('alertsGrid').innerHTML = `<div class="empty"><div class="empty-icon">📡</div><div class="empty-text">No tickers passed all alert thresholds this scan.<br>Top results are shown in the table below.</div></div>`;
+      }
+      _prevAlerts = alerts;
     }
 
     // Table

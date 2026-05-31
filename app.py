@@ -16,13 +16,13 @@ import time
 from flask import Flask, render_template, jsonify
 
 from config import ALERT_CONFIG, HISTORY_CONFIG
-from universe import get_universe
-from market_data import get_index_data, get_stock_data, get_sector_stats
-from history import HistoryStore
-import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
+from data.universe import get_universe
+from data.market_data import get_index_data, get_stock_data, get_sector_stats
+from storage.history import HistoryStore
+from brains import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
 from main import score_ticker, should_alert
 
-app = Flask(__name__, template_folder=".")
+app = Flask(__name__)
 
 # ── Shared scan state ─────────────────────────────────────────────────────────
 _scan_lock    = threading.Lock()
@@ -105,5 +105,5 @@ def api_results():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=False)

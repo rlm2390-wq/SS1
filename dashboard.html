@@ -35,6 +35,8 @@
   .scan-btn:hover{background:var(--accent);color:var(--bg)}
   .scan-btn:disabled{opacity:.4;cursor:not-allowed}
   .scan-btn.scanning{border-color:var(--warn);color:var(--warn);animation:pulse 1s infinite}
+  .next-scan-badge{font-size:10px;color:var(--muted);letter-spacing:.5px;white-space:nowrap}
+  .next-scan-badge span{color:var(--accent2)}
 
   /* Progress bar */
   .progress-wrap{position:fixed;top:0;left:0;right:0;height:3px;z-index:1000;display:none}
@@ -166,6 +168,7 @@
       &nbsp;·&nbsp;
       <span id="regimeScore">–</span>
     </div>
+    <div class="next-scan-badge" id="nextScanBadge" style="display:none">Next scan in <span id="nextScanCountdown">–</span></div>
     <button class="scan-btn" id="scanBtn" onclick="triggerScan()">▶ Run Scan</button>
     <span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">R</span></span>
   </div>
@@ -341,8 +344,26 @@ function renderTable(rows){
   }).join('');
 }
 
-let _prevScanning = false;
-let _prevAlerts   = [];
+let _prevScanning  = false;
+let _prevAlerts    = [];
+let _nextScanTime  = null;   // Date object for next scheduled scan
+
+// ── Countdown timer (updates every second) ────────────────────────────────────
+function formatCountdown(secsRemaining){
+  if(secsRemaining <= 0) return '0s';
+  const m = Math.floor(secsRemaining / 60);
+  const s = secsRemaining % 60;
+  return m > 0 ? `${m}m ${s.toString().padStart(2,'0')}s` : `${s}s`;
+}
+
+setInterval(function(){
+  const badge    = $('nextScanBadge');
+  const countdown = $('nextScanCountdown');
+  if(!_nextScanTime){ badge.style.display = 'none'; return; }
+  const secsLeft = Math.max(0, Math.round((_nextScanTime - Date.now()) / 1000));
+  badge.style.display = '';
+  countdown.textContent = formatCountdown(secsLeft);
+}, 1000);
 
 async function fetchResults(){
   const t0 = performance.now();
@@ -380,6 +401,11 @@ async function fetchResults(){
     const top = data.top||[];
     const avg = top.length?(top.reduce((a,r)=>a+r.upside,0)/top.length).toFixed(3):'–';
     $('statAvgUpside').textContent = avg;
+
+    // Next scheduled scan countdown
+    if(data.next_scan_time){
+      _nextScanTime = new Date(data.next_scan_time);
+    }
 
     if(data.scan_time){
       const d = new Date(data.scan_time);

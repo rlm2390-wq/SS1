@@ -32,14 +32,26 @@ logger = logging.getLogger("app")
 app = Flask(__name__, template_folder=".")
 
 # ── Shared scan state ─────────────────────────────────────────────────────────
-_scan_lock        = threading.Lock()
-_last_results     = []
-_last_alerts      = []
-_last_regime      = {"label": "unknown", "score": 0.0}
-_last_scan_time   = None
-_is_scanning      = False
-_scan_progress    = {"current": 0, "total": 0, "ticker": ""}
-_last_scan_stats  = {"duration_s": None, "tickers_processed": 0, "tickers_skipped": 0}
+_scan_lock            = threading.Lock()
+_last_results         = []
+_last_alerts          = []
+_last_regime          = {"label": "unknown", "score": 0.0}
+_last_scan_time       = None
+_is_scanning          = False
+_scan_progress        = {"current": 0, "total": 0, "ticker": ""}
+_last_scan_stats      = {"duration_s": None, "tickers_processed": 0, "tickers_skipped": 0}
+_next_scan_time       = None
+_scan_interval_seconds = 600   # 10 minutes
+
+
+def schedule_next_scan():
+    """Set _next_scan_time and fire a daemon Timer to run the next scan."""
+    global _next_scan_time
+    _next_scan_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=_scan_interval_seconds)
+    logger.info("Next scheduled scan at %s UTC", _next_scan_time.strftime("%Y-%m-%dT%H:%M:%S"))
+    t = threading.Timer(_scan_interval_seconds, run_scan_background)
+    t.daemon = True
+    t.start()
 
 
 def run_scan_background():
@@ -127,9 +139,11 @@ def run_scan_background():
     finally:
         with _scan_lock:
             _is_scanning = False
+        # Schedule the next recurring scan regardless of success/failure
+        schedule_next_scan()
 
 
-# Run an initial scan on startup
+# Run an initial scan on startup, then recurring scans every 10 minutes
 threading.Thread(target=run_scan_background, daemon=True).start()
 
 
@@ -154,15 +168,19 @@ def trigger_scan():
 @app.route("/api/results")
 def api_results():
     with _scan_lock:
+        next_scan_iso = (
+            _next_scan_time.isoformat() + "Z" if _next_scan_time else None
+        )
         return jsonify({
-            "regime":      _last_regime,
-            "scan_time":   _last_scan_time,
-            "is_scanning": _is_scanning,
-            "progress":    dict(_scan_progress),
-            "total":       len(_last_results),
-            "alerts":      _last_alerts[:20],
-            "top":         _last_results[:50],
-            "scan_stats":  dict(_last_scan_stats),
+            "regime":          _last_regime,
+            "scan_time":       _last_scan_time,
+            "next_scan_time":  next_scan_iso,
+            "is_scanning":     _is_scanning,
+            "progress":        dict(_scan_progress),
+            "total":           len(_last_results),
+            "alerts":          _last_alerts[:20],
+            "top":             _last_results[:50],
+            "scan_stats":      dict(_last_scan_stats),
         })
 
 

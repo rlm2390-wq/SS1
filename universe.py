@@ -53,16 +53,39 @@ _FALLBACK_TICKERS = [
 
 # ── S&P 500 list (cached for the lifetime of the process via lru_cache) ───────
 
+# Hardcoded top-100 S&P 500 tickers used as a fallback when Wikipedia/lxml
+# is unavailable.  Ordered roughly by market cap (as of mid-2024).
+_SP500_FALLBACK: list[str] = [
+    "AAPL", "MSFT", "NVDA", "GOOGL", "GOOG", "AMZN", "META", "BRK-B",
+    "LLY", "AVGO", "TSLA", "JPM", "V", "UNH", "XOM", "MA", "JNJ", "PG",
+    "HD", "MRK", "COST", "ABBV", "CVX", "CRM", "BAC", "NFLX", "AMD",
+    "WMT", "KO", "PEP", "TMO", "ADBE", "MCD", "CSCO", "ACN", "LIN",
+    "ABT", "DHR", "ORCL", "TXN", "QCOM", "PM", "INTU", "WFC", "CAT",
+    "AMGN", "IBM", "GE", "SPGI", "RTX", "ISRG", "NOW", "BKNG", "GS",
+    "HON", "AMAT", "VRTX", "SYK", "BLK", "AXP", "MDLZ", "PLD", "ADI",
+    "GILD", "MMC", "ELV", "DE", "LRCX", "MU", "REGN", "C", "PANW",
+    "BSX", "KLAC", "SO", "CI", "ZTS", "CME", "DUK", "SLB", "TJX",
+    "AON", "SNPS", "CDNS", "MCO", "ITW", "EOG", "PH", "APH", "NOC",
+    "USB", "FI", "HCA", "EMR", "COP", "CTAS", "MCHP", "MSI", "ORLY",
+    "ADP", "CRWD", "DDOG", "NET", "SNOW", "PLTR",
+]
+
+
 @lru_cache(maxsize=1)
 def get_sp500_tickers() -> list[str]:
     """
-    Fetch S&P 500 tickers from Wikipedia.
-    Free, no auth needed. Cached for the process lifetime (effectively daily
-    since the service restarts daily on Railway).
+    Fetch S&P 500 tickers from Wikipedia (requires lxml).
+    Falls back to a hardcoded top-100 list if the fetch fails.
+    Cached for the process lifetime (effectively daily since the service
+    restarts daily on Railway).
     """
     if not PD_AVAILABLE:
-        logger.warning("pandas not available — cannot fetch S&P 500 list")
-        return []
+        logger.warning(
+            "pandas not available — cannot fetch S&P 500 list; "
+            "using hardcoded top-100 fallback (%d tickers)",
+            len(_SP500_FALLBACK),
+        )
+        return list(_SP500_FALLBACK)
     try:
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
         tables = pd.read_html(url, storage_options={"User-Agent": "Mozilla/5.0"})
@@ -73,8 +96,12 @@ def get_sp500_tickers() -> list[str]:
         logger.info("Fetched %d S&P 500 tickers from Wikipedia", len(tickers))
         return tickers
     except Exception as exc:
-        logger.error("Failed to fetch S&P 500 list: %s", exc)
-        return []
+        logger.error(
+            "Failed to fetch S&P 500 list from Wikipedia (%s); "
+            "using hardcoded top-100 fallback (%d tickers)",
+            exc, len(_SP500_FALLBACK),
+        )
+        return list(_SP500_FALLBACK)
 
 
 # ── IPO calendar (Finnhub free tier, 1-hour TTL) ──────────────────────────────

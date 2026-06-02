@@ -15,7 +15,7 @@ import time
 from flask import Flask, render_template, jsonify
 
 from config import ALERT_CONFIG, HISTORY_CONFIG
-from universe import get_universe
+from universe import get_universe, get_recent_ipos, get_recent_drops, get_sp500_tickers
 from market_data import get_index_data, get_stock_data, get_sector_stats
 from history import HistoryStore
 import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
@@ -38,32 +38,42 @@ _last_alerts          = []
 _last_regime          = {"label": "unknown", "score": 0.0}
 _last_scan_time       = None
 _is_scanning          = False
-_scan_progress        = {"current": 0, "total": 0, "ticker": ""}
-_last_scan_stats      = {"duration_s": None, "tickers_processed": 0, "tickers_skipped": 0}
+_scan_progress        = {"current": 0, "total": 0, "ticker": "", "mode": ""}
+_last_scan_stats      = {"duration_s": None, "tickers_processed": 0, "tickers_skipped": 0, "mode": ""}
 _next_scan_time       = None
-_scan_interval_seconds = 600   # 10 minutes
+
+# Quick scan (IPOs + drops only) every 10 minutes.
+# Full scan (entire S&P 500 universe) every 30 minutes.
+_QUICK_SCAN_INTERVAL  = 600    # 10 minutes
+_FULL_SCAN_INTERVAL   = 1800   # 30 minutes
+_quick_scan_count     = 0      # incremented each quick scan; full scan fires every 3rd cycle
 
 
 def schedule_next_scan():
-    """Set _next_scan_time and fire a daemon Timer to run the next scan."""
+    """Schedule the next quick scan (10 min). Every 3rd cycle becomes a full scan."""
     global _next_scan_time
-    _next_scan_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=_scan_interval_seconds)
+    _next_scan_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=_QUICK_SCAN_INTERVAL)
     logger.info("Next scheduled scan at %s UTC", _next_scan_time.strftime("%Y-%m-%dT%H:%M:%S"))
-    t = threading.Timer(_scan_interval_seconds, run_scan_background)
+    t = threading.Timer(_QUICK_SCAN_INTERVAL, run_scan_background)
     t.daemon = True
     t.start()
 
 
 def run_scan_background():
     global _last_results, _last_alerts, _last_regime, _last_scan_time
-    global _is_scanning, _scan_progress, _last_scan_stats
+    global _is_scanning, _scan_progress, _last_scan_stats, _quick_scan_count
+
+    # Decide scan mode: every 3rd quick-scan cycle we do a full scan instead
+    _quick_scan_count += 1
+    is_full_scan = (_quick_scan_count % 3 == 0)
+    scan_mode = "full" if is_full_scan else "quick"
 
     with _scan_lock:
         _is_scanning = True
-        _scan_progress = {"current": 0, "total": 0, "ticker": ""}
+        _scan_progress = {"current": 0, "total": 0, "ticker": "", "mode": scan_mode}
 
     scan_start = time.monotonic()
-    logger.info("Scan started")
+    logger.info("Scan started [mode=%s, cycle=%d]", scan_mode, _quick_scan_count)
 
     try:
         history_store = HistoryStore()
@@ -78,8 +88,27 @@ def run_scan_background():
         rl, rs = regime.compute_market_context(index_data, history_store)
         logger.info("Market regime: %s (score=%.3f)", rl, rs)
 
-        tickers = get_universe()
-        logger.info("Universe size: %d tickers", len(tickers))
+        if is_full_scan:
+            # Full scan: entire dynamic universe (S&P 500 + IPOs + drops)
+            tickers = get_universe()
+            logger.info("Full scan universe: %d tickers", len(tickers))
+        else:
+            # Quick scan: only "interesting" tickers — recent IPOs and recent drops
+            sp500   = get_sp500_tickers()
+            ipos    = get_recent_ipos(days_back=30)
+            drops   = get_recent_drops(sp500)
+            tickers = list(dict.fromkeys(ipos + drops))  # dedup, IPOs first
+            logger.info(
+                "Quick scan universe: %d IPOs + %d drops = %d tickers",
+                len(ipos), len(drops), len(tickers),
+            )
+            if not tickers:
+                logger.info("Quick scan: no interesting tickers found — skipping scan body")
+                with _scan_lock:
+                    _is_scanning = False
+                schedule_next_scan()
+                return
+
         with _scan_lock:
             _scan_progress["total"] = len(tickers)
 
@@ -119,8 +148,8 @@ def run_scan_background():
 
         scan_duration = round(time.monotonic() - scan_start, 2)
         logger.info(
-            "Scan complete: %d processed, %d skipped, %d alerts, %.1fs",
-            len(results), skipped, len(alerts), scan_duration,
+            "Scan complete [mode=%s]: %d processed, %d skipped, %d alerts, %.1fs",
+            scan_mode, len(results), skipped, len(alerts), scan_duration,
         )
 
         with _scan_lock:
@@ -132,6 +161,7 @@ def run_scan_background():
                 "duration_s":        scan_duration,
                 "tickers_processed": len(results),
                 "tickers_skipped":   skipped,
+                "mode":              scan_mode,
             }
 
     except Exception as exc:

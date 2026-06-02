@@ -32,7 +32,7 @@ def _valid_ticker(ticker: str) -> bool:
     return bool(ticker and _TICKER_RE.match(ticker.upper()))
 
 # ── Simple TTL cache for yfinance calls ───────────────────────────────────────
-_CACHE_TTL_SECONDS = 300   # 5 minutes
+_CACHE_TTL_SECONDS = 900   # 15 minutes — reduces yfinance API calls
 
 class _TTLCache:
     """Thread-safe dict-based TTL cache."""
@@ -43,10 +43,12 @@ class _TTLCache:
     def get(self, key: str):
         entry = self._store.get(key)
         if entry is None:
+            logger.debug("Cache miss: %s", key)
             return None
         value, ts = entry
         if time.monotonic() - ts > self._ttl:
             del self._store[key]
+            logger.debug("Cache expired: %s", key)
             return None
         logger.debug("Cache hit: %s", key)
         return value
@@ -56,7 +58,7 @@ class _TTLCache:
 
 _index_cache  = _TTLCache()
 _stock_cache  = _TTLCache()
-_sector_cache = _TTLCache(ttl=3600)   # sector medians change rarely
+_sector_cache = _TTLCache(ttl=7200)   # sector medians change rarely — 2-hour TTL
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -118,7 +120,7 @@ def get_index_data() -> Dict[str, Any]:
     def _fetch(ticker, period="1y"):
         try:
             t    = yf.Ticker(ticker)
-            hist = t.history(period=period, timeout=10)
+            hist = t.history(period=period, timeout=5)
             if hist.empty:
                 logger.warning("Empty history for index ticker %s", ticker)
                 return np.array([])
@@ -143,7 +145,7 @@ def get_index_data() -> Dict[str, Any]:
     above_50 = 0
     for sym in dow30[:15]:   # limit to 15 to avoid rate limits
         try:
-            h = yf.Ticker(sym).history(period="3mo", timeout=10)["Close"].values
+            h = yf.Ticker(sym).history(period="3mo", timeout=5)["Close"].values
             ma = _moving_average(h, 50)
             if len(ma) and not np.isnan(ma[-1]) and h[-1] > ma[-1]:
                 above_50 += 1
@@ -197,10 +199,10 @@ def get_stock_data(ticker: str, lookback_days: int = 252) -> Dict[str, Any]:
 
     try:
         t    = yf.Ticker(ticker)
-        hist = t.history(period="1y", timeout=10)
+        hist = t.history(period="1y", timeout=5)
         info = t.info or {}
     except Exception as exc:
-        logger.error("get_stock_data: yfinance fetch failed for %s: %s", ticker, exc)
+        logger.warning("get_stock_data: yfinance fetch failed for %s: %s — skipping", ticker, exc)
         return {}
 
     if hist.empty or len(hist) < 20:

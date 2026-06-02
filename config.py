@@ -1,8 +1,18 @@
 # ─────────────────────────────────────────────
 #  config.py  –  Global configuration
 # ─────────────────────────────────────────────
+import os
 
 DATA_PROVIDER = "synthetic"   # swap for "alpaca", "polygon", etc.
+
+# ── Universe / IPO / drop detection ───────────────────────────────────────────
+# Optional: set FINNHUB_API_KEY to enable IPO calendar detection.
+FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
+
+# Tickers down this fraction (0.10 = 10%) over DROP_LOOKBACK_DAYS are included
+# in the scan universe as "interesting" candidates.
+DROP_THRESHOLD    = 0.10   # 10%
+DROP_LOOKBACK_DAYS = 5
 
 UNIVERSE_CONFIG = {
     "min_price": 2.0,

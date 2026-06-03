@@ -144,6 +144,13 @@
   .kbd-hint{font-size:10px;color:var(--muted);letter-spacing:.5px}
   .kbd{display:inline-block;padding:1px 5px;border:1px solid var(--muted);border-radius:3px;font-size:9px;color:var(--muted)}
 
+  /* Pagination */
+  .pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:12px}
+  .page-btn{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:6px 16px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;border-radius:3px;transition:all .2s}
+  .page-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .page-btn:disabled{opacity:.3;cursor:not-allowed}
+  .page-indicator{font-size:11px;color:var(--muted);letter-spacing:.5px;min-width:80px;text-align:center}
+
   @media(max-width:900px){
     header{padding:14px 16px}
     .main{padding:20px 16px}
@@ -242,6 +249,12 @@
     </table>
   </div>
 
+  <div class="pagination" id="pagination" style="display:none">
+    <button class="page-btn" id="prevPageBtn" onclick="showResultsPage(_currentResultsPage - 1)" disabled>← Prev</button>
+    <span class="page-indicator" id="pageIndicator">Page 1</span>
+    <button class="page-btn" id="nextPageBtn" onclick="showResultsPage(_currentResultsPage + 1)">Next →</button>
+  </div>
+
   <div class="scan-meta" id="scanMeta"></div>
 </div>
 
@@ -325,9 +338,15 @@ function renderCard(r,i){
   </div>`;
 }
 
-function renderTable(rows){
-  if(!rows||!rows.length) return '<tr><td colspan="10" style="padding:32px;text-align:center;color:var(--muted)">No results yet</td></tr>';
-  return rows.map(r=>{
+const RESULTS_PAGE_SIZE = 50;
+let _currentResultsPage = 0;
+let _allResults         = [];
+
+function renderTable(rows, page){
+  const start = page * RESULTS_PAGE_SIZE;
+  const slice = rows.slice(start, start + RESULTS_PAGE_SIZE);
+  if(!slice.length) return '<tr><td colspan="10" style="padding:32px;text-align:center;color:var(--muted)">No results yet</td></tr>';
+  return slice.map(r=>{
     const f=r.factor_scores;
     return `<tr>
       <td class="td-ticker">${r.ticker}</td>
@@ -342,6 +361,17 @@ function renderTable(rows){
       <td>${setupTags(r.setups)}</td>
     </tr>`;
   }).join('');
+}
+
+function showResultsPage(pageNum){
+  const totalPages = Math.max(1, Math.ceil(_allResults.length / RESULTS_PAGE_SIZE));
+  pageNum = Math.max(0, Math.min(pageNum, totalPages - 1));
+  _currentResultsPage = pageNum;
+  $('resultsBody').innerHTML = renderTable(_allResults, pageNum);
+  $('pageIndicator').textContent = `Page ${pageNum + 1} of ${totalPages}`;
+  $('prevPageBtn').disabled = pageNum === 0;
+  $('nextPageBtn').disabled = pageNum >= totalPages - 1;
+  $('pagination').style.display = _allResults.length > RESULTS_PAGE_SIZE ? '' : 'none';
 }
 
 let _prevScanning  = false;
@@ -447,7 +477,8 @@ async function fetchResults(){
     // Table
     $('topCount').textContent = top.length;
     if(!data.is_scanning || top.length > 0){
-      $('resultsBody').innerHTML = renderTable(top);
+      _allResults = top;
+      showResultsPage(0);
     }
 
     // Scan button

@@ -183,7 +183,7 @@ def api_results():
             "progress":        dict(_scan_progress),
             "total":           len(_last_results),
             "alerts":          _last_alerts[:20],
-            "top":             _last_results[:50],
+            "top":             _last_results,
             "scan_stats":      dict(_last_scan_stats),
         })
 

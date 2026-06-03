@@ -46,10 +46,10 @@
   .progress-label.active{display:block}
 
   /* Layout */
-  .main{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:28px 32px}
+  .main{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:20px 24px}
 
   /* Stats bar */
-  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
   .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px 20px;position:relative;overflow:hidden}
   .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:.6}
   .stat-card:nth-child(2)::after{background:var(--accent2)}
@@ -60,7 +60,7 @@
   .stat-sub{font-size:10px;color:var(--muted);margin-top:6px}
 
   /* Section */
-  .section-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .section-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
   .section-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--bright)}
   .section-line{flex:1;height:1px;background:var(--border)}
   .section-count{font-size:10px;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:20px}
@@ -96,11 +96,11 @@
   .tag-earnings_drift{background:rgba(255,184,0,.12);color:var(--warn);border:1px solid rgba(255,184,0,.3)}
 
   /* Table */
-  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
   table{width:100%;border-collapse:collapse}
   thead{background:rgba(0,0,0,.3);border-bottom:1px solid var(--border)}
-  th{padding:10px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;white-space:nowrap}
-  td{padding:10px 16px;border-bottom:1px solid rgba(26,37,48,.6);white-space:nowrap}
+  th{padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;white-space:nowrap}
+  td{padding:8px 12px;border-bottom:1px solid rgba(26,37,48,.6);white-space:nowrap}
   tr:last-child td{border-bottom:none}
   tr:hover td{background:rgba(255,255,255,.02)}
   .td-ticker{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--bright)}

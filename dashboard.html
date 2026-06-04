@@ -54,10 +54,15 @@
   .stat-sub{font-size:10px;color:var(--muted);margin-top:5px}
 
   /* ── Section headers ── */
-  .section-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-  .section-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--bright)}
+  .section-header{display:flex;align-items:center;gap:12px;margin-bottom:10px;cursor:pointer;user-select:none}
+  .section-header:hover .section-title{color:var(--accent)}
+  .section-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--bright);transition:color .2s}
   .section-line{flex:1;height:1px;background:var(--border)}
   .section-count{font-size:10px;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:20px}
+  .section-chevron{font-size:12px;color:var(--muted);transition:transform .25s;flex-shrink:0}
+  .section-chevron.collapsed{transform:rotate(-90deg)}
+  .section-body{transition:opacity .2s}
+  .section-body.collapsed{display:none}
 
   /* ── Score bars ── */
   .score-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
@@ -167,13 +172,34 @@
   .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px}
   table{width:100%;border-collapse:collapse}
   thead{background:rgba(0,0,0,.3);border-bottom:1px solid var(--border)}
-  th{padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);text-align:left;white-space:nowrap}
+  th{padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);text-align:left;white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s}
+  th:hover{color:var(--text)}
+  th.sort-asc,th.sort-desc{color:var(--accent)}
+  th .sort-icon{display:inline-block;margin-left:4px;font-size:9px;opacity:.5}
+  th.sort-asc .sort-icon,th.sort-desc .sort-icon{opacity:1;color:var(--accent)}
   td{padding:8px 10px;border-bottom:1px solid rgba(26,37,48,.5);white-space:nowrap;font-size:12px}
   tr:last-child td{border-bottom:none}
-  tr:hover td{background:rgba(255,255,255,.02)}
+  tr:hover td{background:rgba(255,255,255,.025)}
   .td-ticker{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--bright)}
   .mini-bar-wrap{width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:5px}
   .mini-bar{height:100%;border-radius:2px}
+  /* Row rank badge */
+  .rank-badge{display:inline-block;width:22px;height:16px;border-radius:3px;font-size:9px;font-weight:700;text-align:center;line-height:16px;margin-right:6px;flex-shrink:0}
+  .rank-1{background:rgba(255,184,0,.2);color:var(--warn)}
+  .rank-2{background:rgba(200,200,200,.1);color:#aaa}
+  .rank-3{background:rgba(180,100,50,.2);color:#c86432}
+  .rank-other{background:rgba(255,255,255,.04);color:var(--muted)}
+  /* Filter bar */
+  .table-controls{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2);flex-wrap:wrap}
+  .filter-input{font-family:'Space Mono',monospace;font-size:11px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:3px;width:140px;outline:none;transition:border-color .2s}
+  .filter-input:focus{border-color:var(--accent2)}
+  .filter-input::placeholder{color:var(--muted)}
+  .filter-select{font-family:'Space Mono',monospace;font-size:11px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:3px;outline:none;cursor:pointer}
+  .filter-select:focus{border-color:var(--accent2)}
+  .filter-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .filter-clear{font-family:'Space Mono',monospace;font-size:10px;padding:5px 10px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:3px;cursor:pointer;transition:all .2s}
+  .filter-clear:hover{border-color:var(--danger);color:var(--danger)}
+  .results-info{font-size:10px;color:var(--muted);margin-left:auto}
 
   /* Pagination */
   .pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:10px}
@@ -387,11 +413,13 @@
   </div>
 
   <!-- Alerts -->
-  <div class="section-header">
+  <div class="section-header" onclick="toggleSection('alerts')">
     <div class="section-title">🔔 Top Alerts</div>
     <div class="section-line"></div>
     <div class="section-count" id="alertCount">0</div>
+    <span class="section-chevron" id="chev-alerts">▾</span>
   </div>
+  <div class="section-body" id="body-alerts">
   <div class="alerts-grid" id="alertsGrid">
     <div class="empty">
       <div class="empty-icon">📡</div>
@@ -399,30 +427,66 @@
     </div>
   </div>
 
+  </div><!-- /body-alerts -->
+
   <!-- Under $20 -->
-  <div class="section-header">
+  <div class="section-header" onclick="toggleSection('under20')">
     <div class="section-title">⚡ Under $20 — Popping</div>
     <div class="section-line"></div>
     <div class="section-count" id="under20Count">0</div>
+    <span class="section-chevron" id="chev-under20">▾</span>
   </div>
+  <div class="section-body" id="body-under20">
   <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Sub-$20 stocks with technical momentum. Higher risk — size positions accordingly.</div>
   <div class="under20-grid" id="under20Grid">
     <div class="empty" style="padding:28px"><div class="empty-text">No sub-$20 movers found yet.</div></div>
   </div>
 
+  </div><!-- /body-under20 -->
+
   <!-- All results -->
-  <div class="section-header">
+  <div class="section-header" onclick="toggleSection('allresults')">
     <div class="section-title">📊 All Results</div>
     <div class="section-line"></div>
     <div class="section-count" id="topCount">0</div>
+    <span class="section-chevron" id="chev-allresults">▾</span>
+  </div>
+  <div class="section-body" id="body-allresults">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+    <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Filter:</div>
+    <input class="filter-input" id="filterTicker"  type="text"   placeholder="Ticker…"   oninput="applyFilters()" />
+    <select class="filter-select" id="filterSector" onchange="applyFilters()"><option value="">All Sectors</option></select>
+    <select class="filter-select" id="filterSetup"  onchange="applyFilters()">
+      <option value="">All Setups</option>
+      <option value="volatility_breakout">Volatility Breakout</option>
+      <option value="trend_pullback">Trend Pullback</option>
+      <option value="short_squeeze">Short Squeeze</option>
+      <option value="earnings_drift">Earnings Drift</option>
+    </select>
+    <select class="filter-select" id="filterRisk" onchange="applyFilters()">
+      <option value="">Any Risk</option>
+      <option value="low">Low Risk (&lt;0.3)</option>
+      <option value="mid">Medium Risk (0.3–0.6)</option>
+      <option value="high">High Risk (&gt;0.6)</option>
+    </select>
+    <button class="filter-clear" onclick="clearFilters()">✕ Clear</button>
+    <div class="results-info" id="resultsInfo"></div>
   </div>
   <div class="table-wrap">
     <table>
-      <thead>
+      <thead id="tableHead">
         <tr>
-          <th>Ticker</th><th>Sector</th><th>Price</th>
-          <th>Upside ↓</th><th>Risk</th>
-          <th>Tech</th><th>Fund</th><th>Sent</th><th>Struct</th><th>Setups</th>
+          <th onclick="sortTable('rank')"    data-key="rank">    # <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable('ticker')"  data-key="ticker">  Ticker <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable('sector')"  data-key="sector">  Sector <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable('price')"   data-key="price">   Price <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable('upside')"  data-key="upside" class="sort-desc">  Upside <span class="sort-icon">↓</span></th>
+          <th onclick="sortTable('risk')"    data-key="risk">    Risk <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable('tech')"    data-key="tech">    Tech <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable('fund')"    data-key="fund">    Fund <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable('sent')"    data-key="sent">    Sent <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable('struct')"  data-key="struct">  Struct <span class="sort-icon">↕</span></th>
+          <th>Setups</th>
         </tr>
       </thead>
       <tbody id="resultsBody">
@@ -440,6 +504,7 @@
     <button class="page-btn" id="nextPageBtn" onclick="changePage(1)">Next →</button>
   </div>
 
+  </div><!-- /body-allresults -->
   <div class="scan-meta" id="scanMeta"></div>
 </div>
 
@@ -448,6 +513,16 @@ const REGIME_COLORS={risk_on_strong:'#00ff88',risk_on:'#00ff88',choppy:'#ffb800'
 const $=id=>document.getElementById(id);
 let _apiErrors=0,_nextScanTime=null,_prevAlertTickers='',_allResults=[],_page=0;
 const PAGE_SIZE=50;
+
+
+// ── Collapsible sections ──────────────────────────────────────────────────────
+const _sectionState={alerts:true,under20:true,allresults:true};
+function toggleSection(id){
+  _sectionState[id]=!_sectionState[id];
+  const body=$('body-'+id), chev=$('chev-'+id);
+  body.classList.toggle('collapsed',!_sectionState[id]);
+  chev.classList.toggle('collapsed',!_sectionState[id]);
+}
 
 // ── Error handling ────────────────────────────────────────────────────────────
 function _logErr(ctx,e){
@@ -634,13 +709,93 @@ function renderUnder20(r,i){
 </div>`;
 }
 
-// ── Table ─────────────────────────────────────────────────────────────────────
-function renderTable(rows,page){
-  const slice=rows.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);
-  if(!slice.length) return'<tr><td colspan="10" style="padding:28px;text-align:center;color:var(--muted)">No results yet</td></tr>';
-  return slice.map(r=>{
+// ── Table with sort + filter ──────────────────────────────────────────────────
+let _sortKey     = 'upside';
+let _sortAsc     = false;
+let _filteredResults = [];
+
+const SORT_GETTERS = {
+  rank:   (r,i) => i,
+  ticker: r => r.ticker,
+  sector: r => r.sector||'',
+  price:  r => r.last_price||0,
+  upside: r => r.upside,
+  risk:   r => r.risk,
+  tech:   r => r.factor_scores.technical||0,
+  fund:   r => r.factor_scores.fundamental||0,
+  sent:   r => r.factor_scores.sentiment||0,
+  struct: r => r.factor_scores.structural||0,
+};
+
+function sortTable(key){
+  if(_sortKey===key){ _sortAsc=!_sortAsc; }
+  else { _sortKey=key; _sortAsc=(key==='ticker'||key==='sector'); }
+  // Update header classes
+  document.querySelectorAll('#tableHead th[data-key]').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    const icon=th.querySelector('.sort-icon');
+    if(icon) icon.textContent='↕';
+    if(th.dataset.key===key){
+      th.classList.add(_sortAsc?'sort-asc':'sort-desc');
+      if(icon) icon.textContent=_sortAsc?'↑':'↓';
+    }
+  });
+  applyFilters();
+}
+
+function applyFilters(){
+  const ticker  = ($('filterTicker') .value||'').toUpperCase().trim();
+  const sector  = ($('filterSector').value||'').trim();
+  const setup   = ($('filterSetup') .value||'').trim();
+  const riskBand= ($('filterRisk')  .value||'').trim();
+
+  let rows = [..._allResults];
+
+  if(ticker)   rows=rows.filter(r=>r.ticker.includes(ticker));
+  if(sector)   rows=rows.filter(r=>(r.sector||'')=== sector);
+  if(setup)    rows=rows.filter(r=>(r.setups||[]).includes(setup));
+  if(riskBand==='low')  rows=rows.filter(r=>r.risk<0.3);
+  if(riskBand==='mid')  rows=rows.filter(r=>r.risk>=0.3&&r.risk<=0.6);
+  if(riskBand==='high') rows=rows.filter(r=>r.risk>0.6);
+
+  // Sort
+  const getter = SORT_GETTERS[_sortKey] || (r=>r.upside);
+  rows.sort((a,b,)=>{
+    const av=getter(a,0), bv=getter(b,0);
+    if(typeof av==='string') return _sortAsc?av.localeCompare(bv):bv.localeCompare(av);
+    return _sortAsc?av-bv:bv-av;
+  });
+
+  _filteredResults=rows;
+  _page=0;
+  renderCurrentPage();
+}
+
+function clearFilters(){
+  $('filterTicker').value='';
+  $('filterSector').value='';
+  $('filterSetup').value='';
+  $('filterRisk').value='';
+  applyFilters();
+}
+
+function populateSectorFilter(results){
+  const sel=$('filterSector');
+  const current=sel.value;
+  const sectors=[...new Set(results.map(r=>r.sector||'Unknown').filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All Sectors</option>'+sectors.map(s=>`<option value="${s}">${s}</option>`).join('');
+  if(sectors.includes(current)) sel.value=current;
+}
+
+function renderTable(rows, page){
+  if(!rows.length) return '<tr><td colspan="11" style="padding:28px;text-align:center;color:var(--muted)">No results match your filters</td></tr>';
+  const start=page*PAGE_SIZE;
+  return rows.slice(start, start+PAGE_SIZE).map((r,idx)=>{
     const f=r.factor_scores;
+    const rank=start+idx+1;
+    const rankClass=rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'rank-other';
     return`<tr>
+      <td><span class="rank-badge ${rankClass}">${rank}</span></td>
       <td class="td-ticker">${r.ticker}</td>
       <td style="color:var(--muted);font-size:11px">${r.sector||'—'}</td>
       <td>${fp(r.last_price)}</td>
@@ -655,14 +810,24 @@ function renderTable(rows,page){
   }).join('');
 }
 
-function showResultsPage(p){
-  const total=Math.max(1,Math.ceil(_allResults.length/PAGE_SIZE));
-  _page=Math.max(0,Math.min(p,total-1));
-  $('resultsBody').innerHTML=renderTable(_allResults,_page);
+function renderCurrentPage(){
+  const rows=_filteredResults;
+  $('resultsBody').innerHTML=renderTable(rows,_page);
+  const total=Math.max(1,Math.ceil(rows.length/PAGE_SIZE));
   $('pageIndicator').textContent=`Page ${_page+1} of ${total}`;
   $('prevPageBtn').disabled=_page===0;
   $('nextPageBtn').disabled=_page>=total-1;
-  $('pagination').style.display=_allResults.length>PAGE_SIZE?'':'none';
+  $('pagination').style.display=rows.length>PAGE_SIZE?'':'none';
+  $('topCount').textContent=rows.length;
+  const showing=Math.min((_page+1)*PAGE_SIZE,rows.length);
+  const start=_page*PAGE_SIZE+1;
+  $('resultsInfo').textContent=rows.length?`Showing ${start}–${showing} of ${rows.length}`:'';
+}
+
+function showResultsPage(p){
+  const total=Math.max(1,Math.ceil(_filteredResults.length/PAGE_SIZE));
+  _page=Math.max(0,Math.min(p,total-1));
+  renderCurrentPage();
 }
 function changePage(d){showResultsPage(_page+d);}
 
@@ -742,8 +907,11 @@ async function fetchResults(){
       $('under20Grid').innerHTML=`<div class="empty" style="padding:28px"><div class="empty-text">No sub-$20 movers found this scan.</div></div>`;
     }
 
-    $('topCount').textContent=top.length;
-    if(!data.is_scanning||top.length>0){_allResults=top;showResultsPage(0);}
+    if(!data.is_scanning||top.length>0){
+      _allResults=top;
+      populateSectorFilter(top);
+      applyFilters();
+    }
 
     const btn=$('scanBtn');
     if(data.is_scanning){btn.textContent='⟳ Scanning…';btn.classList.add('scanning');btn.disabled=true;}

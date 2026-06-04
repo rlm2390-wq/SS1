@@ -65,18 +65,21 @@
   .section-line{flex:1;height:1px;background:var(--border)}
   .section-count{font-size:10px;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:20px}
 
-  /* Alert cards */
-  .alerts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:36px}
-  .alert-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s;animation:fadeIn .4s ease both}
-  .alert-card:hover{border-color:var(--accent);transform:translateY(-2px)}
-  .alert-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--accent)}
+  /* Alert cards grid */
+  .alerts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;margin-bottom:28px}
+  .alert-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s;animation:fadeIn .4s ease both}
+  .alert-card:hover{border-color:rgba(0,255,136,.5);transform:translateY(-2px)}
+  .alert-card::before{content:'';display:block;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
   @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .card-body{padding:18px 20px}
   .card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
-  .card-ticker{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--bright)}
+  .card-ticker{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--bright)}
   .card-sector{font-size:10px;color:var(--muted);margin-top:2px}
-  .card-price{font-size:16px;font-weight:700;color:var(--accent);text-align:right}
-  .card-price-label{font-size:9px;color:var(--muted)}
-  .score-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .card-price{font-size:18px;font-weight:700;color:var(--accent);text-align:right}
+  .card-price-label{font-size:9px;color:var(--muted);text-align:right}
+
+  /* Score rows */
+  .score-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
   .score-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);width:52px;flex-shrink:0}
   .score-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
   .score-bar{height:100%;border-radius:3px;transition:width .8s ease}
@@ -88,12 +91,58 @@
   .bar-sent{background:#ffb800;opacity:.7}
   .bar-struct{background:#c060ff;opacity:.7}
   .score-value{font-size:12px;font-weight:700;color:var(--bright);width:38px;text-align:right;flex-shrink:0}
-  .setups-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .score-hi{color:var(--accent)}
+  .score-mid{color:var(--warn)}
+  .score-lo{color:var(--muted)}
+  .risk-hi{color:var(--danger)}
+  .risk-mid{color:var(--warn)}
+  .risk-lo{color:var(--accent)}
+
+  /* Setup tags */
+  .setups-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
   .setup-tag{font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:3px;font-weight:700}
   .tag-volatility_breakout{background:rgba(0,255,136,.12);color:var(--accent);border:1px solid rgba(0,255,136,.3)}
   .tag-trend_pullback{background:rgba(0,200,255,.12);color:var(--accent2);border:1px solid rgba(0,200,255,.3)}
   .tag-short_squeeze{background:rgba(255,64,96,.12);color:#ff7090;border:1px solid rgba(255,64,96,.3)}
   .tag-earnings_drift{background:rgba(255,184,0,.12);color:var(--warn);border:1px solid rgba(255,184,0,.3)}
+
+  /* ── Narrative panel ── */
+  .narrative{border-top:1px solid var(--border);padding-top:12px;margin-top:4px}
+  .narrative-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;padding:2px 0 6px}
+  .narrative-toggle-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent2)}
+  .narrative-arrow{font-size:12px;color:var(--muted);transition:transform .2s}
+  .narrative-arrow.open{transform:rotate(180deg)}
+  .narrative-body{display:none;padding-top:4px}
+  .narrative-body.open{display:block}
+  .narrative-section{margin-bottom:10px}
+  .narrative-section-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:5px}
+  .nt-why   .narrative-section-label{color:var(--accent)}
+  .nt-watch .narrative-section-label{color:var(--accent2)}
+  .nt-risk  .narrative-section-label{color:var(--danger)}
+  .narrative-bullets{list-style:none;padding:0}
+  .narrative-bullets li{font-size:11px;line-height:1.65;color:var(--text);padding:2px 0 2px 14px;position:relative}
+  .narrative-bullets li::before{content:'›';position:absolute;left:0}
+  .nt-why   .narrative-bullets li::before{color:var(--accent)}
+  .nt-watch .narrative-bullets li::before{color:var(--accent2)}
+  .nt-risk  .narrative-bullets li::before{color:var(--danger)}
+
+  /* ── Under $20 section ── */
+  .under20-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:28px}
+  .under20-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s;animation:fadeIn .4s ease both}
+  .under20-card:hover{border-color:rgba(255,184,0,.5);transform:translateY(-2px)}
+  .under20-card::before{content:'';display:block;height:3px;background:linear-gradient(90deg,var(--warn),#ff8c00)}
+  .u20-body{padding:14px 16px}
+  .u20-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .u20-ticker{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--bright)}
+  .u20-price{font-size:20px;font-weight:700;color:var(--warn)}
+  .u20-sector{font-size:10px;color:var(--muted);margin-bottom:10px}
+  .u20-setups{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+  .u20-narrative-toggle{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);cursor:pointer;padding-top:6px;border-top:1px solid var(--border);margin-top:6px}
+  .u20-narrative-toggle:hover{color:var(--warn)}
+  .u20-narrative-body{display:none;margin-top:8px}
+  .u20-narrative-body.open{display:block}
+  .u20-bullet{font-size:11px;line-height:1.6;color:var(--text);padding:2px 0 2px 12px;position:relative}
+  .u20-bullet::before{content:'›';position:absolute;left:0;color:var(--warn)}
 
   /* Table */
   .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
@@ -105,23 +154,15 @@
   tr:hover td{background:rgba(255,255,255,.02)}
   .td-ticker{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--bright)}
   .td-score{font-weight:700}
-  .score-hi{color:var(--accent)}
-  .score-mid{color:var(--warn)}
-  .score-lo{color:var(--muted)}
-  .risk-hi{color:var(--danger)}
-  .risk-mid{color:var(--warn)}
-  .risk-lo{color:var(--accent)}
   .mini-bar-wrap{width:80px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
   .mini-bar{height:100%;border-radius:2px}
 
   .scan-meta{font-size:10px;color:var(--muted);text-align:right;margin-top:20px;letter-spacing:.5px}
 
-  /* Empty */
+  /* Empty / loading states */
   .empty{text-align:center;padding:48px;color:var(--muted)}
   .empty-icon{font-size:36px;margin-bottom:12px}
   .empty-text{font-size:12px;line-height:1.8}
-
-  /* Scanning overlay on table */
   .scanning-notice{text-align:center;padding:40px;color:var(--muted)}
   .scanning-ticker{color:var(--accent);font-size:18px;font-family:'Syne',sans-serif;font-weight:700;margin:8px 0}
   .scanning-sub{font-size:11px;letter-spacing:1px}
@@ -129,10 +170,10 @@
   /* Error banner */
   .error-banner{display:none;position:fixed;bottom:24px;right:24px;z-index:2000;background:#1a0a0e;border:1px solid var(--danger);border-radius:6px;padding:14px 18px;max-width:360px;box-shadow:0 4px 24px rgba(255,64,96,.2)}
   .error-banner.visible{display:block;animation:fadeIn .3s ease}
-  .error-banner-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--danger);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .error-banner-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--danger);margin-bottom:6px}
   .error-banner-msg{font-size:11px;color:var(--text);line-height:1.6;word-break:break-word}
   .error-banner-time{font-size:10px;color:var(--muted);margin-top:6px}
-  .error-banner-close{position:absolute;top:10px;right:12px;cursor:pointer;color:var(--muted);font-size:14px;line-height:1;background:none;border:none;padding:0}
+  .error-banner-close{position:absolute;top:10px;right:12px;cursor:pointer;color:var(--muted);font-size:14px;background:none;border:none;padding:0}
   .error-banner-close:hover{color:var(--danger)}
 
   /* Tooltips */
@@ -140,7 +181,6 @@
   [data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a2530;border:1px solid var(--border);color:var(--text);font-size:10px;line-height:1.5;padding:6px 10px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:100}
   [data-tip]:hover::after{opacity:1}
 
-  /* Keyboard shortcut hint */
   .kbd-hint{font-size:10px;color:var(--muted);letter-spacing:.5px}
   .kbd{display:inline-block;padding:1px 5px;border:1px solid var(--muted);border-radius:3px;font-size:9px;color:var(--muted)}
 
@@ -155,7 +195,7 @@
     header{padding:14px 16px}
     .main{padding:20px 16px}
     .stats-bar{grid-template-columns:repeat(2,1fr)}
-    .alerts-grid{grid-template-columns:1fr}
+    .alerts-grid,.under20-grid{grid-template-columns:1fr}
   }
 </style>
 </head>
@@ -181,7 +221,6 @@
   </div>
 </header>
 
-<!-- Error banner (shown after repeated API failures) -->
 <div class="error-banner" id="errorBanner" role="alert">
   <button class="error-banner-close" onclick="dismissError()" aria-label="Dismiss">✕</button>
   <div class="error-banner-title">⚠ API Error</div>
@@ -213,6 +252,7 @@
     </div>
   </div>
 
+  <!-- Alerts -->
   <div class="section-header">
     <div class="section-title">🔔 Alerts</div>
     <div class="section-line"></div>
@@ -225,6 +265,22 @@
     </div>
   </div>
 
+  <!-- Under $20 Poppers -->
+  <div class="section-header">
+    <div class="section-title">⚡ Under $20 — Popping</div>
+    <div class="section-line"></div>
+    <div class="section-count" id="under20Count">0</div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px">
+    Sub-$20 stocks with technical momentum. Higher risk — size positions accordingly.
+  </div>
+  <div class="under20-grid" id="under20Grid">
+    <div class="empty" style="padding:28px">
+      <div class="empty-text">No sub-$20 movers found yet.</div>
+    </div>
+  </div>
+
+  <!-- All results table -->
   <div class="section-header" style="margin-top:8px">
     <div class="section-title">📊 All Results</div>
     <div class="section-line"></div>
@@ -264,57 +320,65 @@ const REGIME_COLORS = {
   choppy:'#ffb800', risk_off:'#ff8040', panic:'#ff4060', unknown:'#3a4a5a'
 };
 
-// ── Error tracking ────────────────────────────────────────────────────────────
-let _apiErrorCount    = 0;
-let _lastApiErrorTime = null;
-const API_ERROR_THRESHOLD = 3;   // show banner after this many consecutive failures
-const FETCH_TIMEOUT_MS    = 5000;
+let _apiErrorCount = 0, _lastApiErrorTime = null;
+const API_ERROR_THRESHOLD = 3, FETCH_TIMEOUT_MS = 5000;
 
-function _logApiError(context, err){
+function _logApiError(ctx, err){
   _apiErrorCount++;
   _lastApiErrorTime = new Date();
-  const ts = _lastApiErrorTime.toISOString();
-  console.error(`[${ts}] API error (${context}) [attempt ${_apiErrorCount}]:`, err);
-  if(_apiErrorCount >= API_ERROR_THRESHOLD){
-    showErrorBanner(`${err.message || err}`, _lastApiErrorTime);
-  }
+  if(_apiErrorCount >= API_ERROR_THRESHOLD) showErrorBanner(err.message||String(err), _lastApiErrorTime);
 }
-
-function _clearApiErrors(){
-  if(_apiErrorCount > 0){
-    console.info(`[${new Date().toISOString()}] API recovered after ${_apiErrorCount} failure(s)`);
-  }
-  _apiErrorCount = 0;
-}
-
+function _clearApiErrors(){ _apiErrorCount = 0; }
 function showErrorBanner(msg, time){
-  document.getElementById('errorMsg').textContent  = msg;
-  document.getElementById('errorTime').textContent = 'Last error: ' + time.toLocaleTimeString();
-  document.getElementById('errorBanner').classList.add('visible');
+  $('errorMsg').textContent  = msg;
+  $('errorTime').textContent = 'Last error: ' + time.toLocaleTimeString();
+  $('errorBanner').classList.add('visible');
 }
-
 function dismissError(){
-  document.getElementById('errorBanner').classList.remove('visible');
+  $('errorBanner').classList.remove('visible');
   _apiErrorCount = 0;
 }
 
-// ── Cached DOM refs ───────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function scoreClass(v){ return v>=.65?'score-hi':v>=.45?'score-mid':'score-lo' }
-function riskClass(v){ return v>=.6?'risk-hi':v>=.4?'risk-mid':'risk-lo' }
+function riskClass(v){  return v>=.6?'risk-hi':v>=.4?'risk-mid':'risk-lo' }
 function pct(v){ return Math.round(v*100)+'%' }
 function fmt(v){ return v.toFixed(3) }
+function fp(p){  return p ? '$'+p.toFixed(2) : '—' }
 function miniBar(v,c){ return `<span class="mini-bar-wrap"><span class="mini-bar ${c}" style="width:${pct(v)}"></span></span>` }
 function setupTags(s){
   if(!s||!s.length) return '<span style="color:var(--muted);font-size:10px">—</span>';
   return s.map(x=>`<span class="setup-tag tag-${x}">${x.replace(/_/g,' ')}</span>`).join('');
 }
 
-function renderCard(r,i){
-  const f=r.factor_scores;
-  return `<div class="alert-card" style="animation-delay:${i*60}ms">
+// ── Alert card with narrative ─────────────────────────────────────────────────
+function renderCard(r, i){
+  const f = r.factor_scores;
+  const n = r.narrative || {};
+  const why   = n.why        || [];
+  const watch = n.watch_for  || [];
+  const risks = n.risk_flags || [];
+  const nid   = `n-${r.ticker}-${i}`;
+
+  const whyHtml = why.length
+    ? `<div class="narrative-section nt-why">
+        <div class="narrative-section-label">📌 Why it flagged</div>
+        <ul class="narrative-bullets">${why.map(b=>`<li>${b}</li>`).join('')}</ul>
+       </div>` : '';
+  const watchHtml = watch.length
+    ? `<div class="narrative-section nt-watch">
+        <div class="narrative-section-label">👁 Watch for</div>
+        <ul class="narrative-bullets">${watch.map(b=>`<li>${b}</li>`).join('')}</ul>
+       </div>` : '';
+  const riskHtml = risks.length
+    ? `<div class="narrative-section nt-risk">
+        <div class="narrative-section-label">⚠ Risk flags</div>
+        <ul class="narrative-bullets">${risks.map(b=>`<li>${b}</li>`).join('')}</ul>
+       </div>` : '';
+
+  return `<div class="alert-card" style="animation-delay:${i*50}ms">
+  <div class="card-body">
     <div class="card-top">
       <div>
         <div class="card-ticker">${r.ticker}</div>
@@ -322,36 +386,89 @@ function renderCard(r,i){
       </div>
       <div>
         <div class="card-price-label">LAST PRICE</div>
-        <div class="card-price">${r.last_price?r.last_price.toFixed(2):'—'}</div>
+        <div class="card-price">${fp(r.last_price)}</div>
       </div>
     </div>
+
     <div class="score-row"><div class="score-label" data-tip="Composite upside score (0–1). Higher = stronger opportunity.">Upside</div><div class="score-bar-wrap"><div class="score-bar bar-upside" style="width:${pct(r.upside)}"></div></div><div class="score-value ${scoreClass(r.upside)}">${fmt(r.upside)}</div></div>
-    <div class="score-row"><div class="score-label" data-tip="Risk score (0–1). Lower is safer. Combines volatility, drawdown, and liquidity.">Risk</div><div class="score-bar-wrap"><div class="score-bar bar-risk" style="width:${pct(r.risk)}"></div></div><div class="score-value ${riskClass(r.risk)}">${fmt(r.risk)}</div></div>
-    <div class="score-row"><div class="score-label" data-tip="Setup quality score (0–1). Measures pattern strength across detected setups.">Setup</div><div class="score-bar-wrap"><div class="score-bar bar-setup" style="width:${pct(r.setup_score||0)}"></div></div><div class="score-value">${fmt(r.setup_score||0)}</div></div>
-    <div style="border-top:1px solid var(--border);margin:12px 0 10px;padding-top:10px">
-      <div class="score-row"><div class="score-label" data-tip="Technical score: trend, momentum, RSI, Bollinger Bands, moving averages.">Tech</div><div class="score-bar-wrap"><div class="score-bar bar-tech" style="width:${pct(f.technical||0)}"></div></div><div class="score-value">${fmt(f.technical||0)}</div></div>
-      <div class="score-row"><div class="score-label" data-tip="Fundamental score: revenue growth, margins, PEG ratio, EV/Sales vs sector.">Fund</div><div class="score-bar-wrap"><div class="score-bar bar-fund" style="width:${pct(f.fundamental||0)}"></div></div><div class="score-value">${fmt(f.fundamental||0)}</div></div>
-      <div class="score-row"><div class="score-label" data-tip="Sentiment score: news tone, short interest, insider activity, options flow.">Sent</div><div class="score-bar-wrap"><div class="score-bar bar-sent" style="width:${pct(f.sentiment||0)}"></div></div><div class="score-value">${fmt(f.sentiment||0)}</div></div>
-      <div class="score-row"><div class="score-label" data-tip="Structural score: float, institutional ownership, analyst target vs price.">Struct</div><div class="score-bar-wrap"><div class="score-bar bar-struct" style="width:${pct(f.structural||0)}"></div></div><div class="score-value">${fmt(f.structural||0)}</div></div>
+    <div class="score-row"><div class="score-label" data-tip="Risk (0–1). Lower is safer. Combines volatility and liquidity.">Risk</div><div class="score-bar-wrap"><div class="score-bar bar-risk" style="width:${pct(r.risk)}"></div></div><div class="score-value ${riskClass(r.risk)}">${fmt(r.risk)}</div></div>
+    <div class="score-row"><div class="score-label" data-tip="Setup quality (0–1). Pattern strength across detected setups.">Setup</div><div class="score-bar-wrap"><div class="score-bar bar-setup" style="width:${pct(r.setup_score||0)}"></div></div><div class="score-value">${fmt(r.setup_score||0)}</div></div>
+    <div style="border-top:1px solid var(--border);margin:10px 0 8px;padding-top:10px">
+      <div class="score-row"><div class="score-label" data-tip="Trend, momentum, RSI, Bollinger Bands, moving averages.">Tech</div><div class="score-bar-wrap"><div class="score-bar bar-tech" style="width:${pct(f.technical||0)}"></div></div><div class="score-value">${fmt(f.technical||0)}</div></div>
+      <div class="score-row"><div class="score-label" data-tip="Revenue growth, margins, PEG ratio, EV/Sales vs sector.">Fund</div><div class="score-bar-wrap"><div class="score-bar bar-fund" style="width:${pct(f.fundamental||0)}"></div></div><div class="score-value">${fmt(f.fundamental||0)}</div></div>
+      <div class="score-row"><div class="score-label" data-tip="News tone, analyst revisions, options flow.">Sent</div><div class="score-bar-wrap"><div class="score-bar bar-sent" style="width:${pct(f.sentiment||0)}"></div></div><div class="score-value">${fmt(f.sentiment||0)}</div></div>
+      <div class="score-row"><div class="score-label" data-tip="Float, institutional ownership, short interest, insider activity.">Struct</div><div class="score-bar-wrap"><div class="score-bar bar-struct" style="width:${pct(f.structural||0)}"></div></div><div class="score-value">${fmt(f.structural||0)}</div></div>
     </div>
+
     <div class="setups-row">${setupTags(r.setups)}</div>
-  </div>`;
+
+    <div class="narrative">
+      <div class="narrative-toggle" onclick="toggleNarrative('${nid}')">
+        <span class="narrative-toggle-label">📖 What does this mean?</span>
+        <span class="narrative-arrow" id="arr-${nid}">▾</span>
+      </div>
+      <div class="narrative-body" id="${nid}">
+        ${whyHtml}${watchHtml}${riskHtml}
+      </div>
+    </div>
+  </div>
+</div>`;
 }
 
+function toggleNarrative(id){
+  const body = $(id), arr = $('arr-'+id);
+  const open = body.classList.toggle('open');
+  arr.classList.toggle('open', open);
+}
+
+// ── Under $20 cards ───────────────────────────────────────────────────────────
+function renderUnder20(r, i){
+  const f   = r.factor_scores;
+  const n   = r.narrative || {};
+  const why = (n.why || []).slice(0, 2);
+  const uid = `u20-${r.ticker}-${i}`;
+
+  const narrativeHtml = why.length ? `
+    <div class="u20-narrative-toggle" onclick="toggleU20('${uid}')">▾ Why it's popping</div>
+    <div class="u20-narrative-body" id="${uid}">
+      ${why.map(b=>`<div class="u20-bullet">${b}</div>`).join('')}
+    </div>` : '';
+
+  return `<div class="under20-card" style="animation-delay:${i*40}ms">
+  <div class="u20-body">
+    <div class="u20-top">
+      <div class="u20-ticker">${r.ticker}</div>
+      <div class="u20-price">${fp(r.last_price)}</div>
+    </div>
+    <div class="u20-sector">${r.sector||'—'}</div>
+    <div class="score-row"><div class="score-label">Upside</div><div class="score-bar-wrap"><div class="score-bar bar-upside" style="width:${pct(r.upside)}"></div></div><div class="score-value ${scoreClass(r.upside)}">${fmt(r.upside)}</div></div>
+    <div class="score-row"><div class="score-label">Tech</div><div class="score-bar-wrap"><div class="score-bar bar-tech" style="width:${pct(f.technical||0)}"></div></div><div class="score-value">${fmt(f.technical||0)}</div></div>
+    <div class="score-row"><div class="score-label">Risk</div><div class="score-bar-wrap"><div class="score-bar bar-risk" style="width:${pct(r.risk)}"></div></div><div class="score-value ${riskClass(r.risk)}">${fmt(r.risk)}</div></div>
+    <div class="u20-setups">${setupTags(r.setups)}</div>
+    ${narrativeHtml}
+  </div>
+</div>`;
+}
+
+function toggleU20(id){
+  const el = $(id);
+  if(el) el.classList.toggle('open');
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
 const RESULTS_PAGE_SIZE = 50;
 let _currentResultsPage = 0;
 let _allResults         = [];
 
 function renderTable(rows, page){
-  const start = page * RESULTS_PAGE_SIZE;
-  const slice = rows.slice(start, start + RESULTS_PAGE_SIZE);
+  const slice = rows.slice(page*RESULTS_PAGE_SIZE, (page+1)*RESULTS_PAGE_SIZE);
   if(!slice.length) return '<tr><td colspan="10" style="padding:32px;text-align:center;color:var(--muted)">No results yet</td></tr>';
   return slice.map(r=>{
     const f=r.factor_scores;
     return `<tr>
       <td class="td-ticker">${r.ticker}</td>
       <td style="color:var(--muted);font-size:11px">${r.sector||'—'}</td>
-      <td>${r.last_price?r.last_price.toFixed(2):'—'}</td>
+      <td>${fp(r.last_price)}</td>
       <td class="td-score ${scoreClass(r.upside)}">${miniBar(r.upside,'bar-upside')}${fmt(r.upside)}</td>
       <td class="${riskClass(r.risk)}">${fmt(r.risk)}</td>
       <td>${miniBar(f.technical||0,'bar-tech')}${fmt(f.technical||0)}</td>
@@ -374,151 +491,118 @@ function showResultsPage(pageNum){
   $('pagination').style.display = _allResults.length > RESULTS_PAGE_SIZE ? '' : 'none';
 }
 
-let _prevScanning  = false;
-let _prevAlerts    = [];
-let _nextScanTime  = null;   // Date object for next scheduled scan
+// ── Fetch loop ────────────────────────────────────────────────────────────────
+let _prevAlerts   = [];
+let _nextScanTime = null;
 
-// ── Countdown timer (updates every second) ────────────────────────────────────
-function formatCountdown(secsRemaining){
-  if(secsRemaining <= 0) return '0s';
-  const m = Math.floor(secsRemaining / 60);
-  const s = secsRemaining % 60;
-  return m > 0 ? `${m}m ${s.toString().padStart(2,'0')}s` : `${s}s`;
+function formatCountdown(s){
+  if(s<=0) return '0s';
+  const m=Math.floor(s/60); s=s%60;
+  return m>0?`${m}m ${String(s).padStart(2,'0')}s`:`${s}s`;
 }
-
-setInterval(function(){
-  const badge    = $('nextScanBadge');
-  const countdown = $('nextScanCountdown');
-  if(!_nextScanTime){ badge.style.display = 'none'; return; }
-  const secsLeft = Math.max(0, Math.round((_nextScanTime - Date.now()) / 1000));
-  badge.style.display = '';
-  countdown.textContent = formatCountdown(secsLeft);
-}, 1000);
+setInterval(()=>{
+  const badge=$('nextScanBadge');
+  if(!_nextScanTime){badge.style.display='none';return;}
+  const left=Math.max(0,Math.round((_nextScanTime-Date.now())/1000));
+  badge.style.display='';
+  $('nextScanCountdown').textContent=formatCountdown(left);
+},1000);
 
 async function fetchResults(){
-  const t0 = performance.now();
   try{
-    const controller = new AbortController();
-    const timeoutId  = setTimeout(()=>controller.abort(), FETCH_TIMEOUT_MS);
-
+    const ctrl=new AbortController();
+    const tid=setTimeout(()=>ctrl.abort(),FETCH_TIMEOUT_MS);
     let res;
-    try{
-      res = await fetch('/api/results', {signal: controller.signal});
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if(!res.ok){
-      throw new Error(`HTTP ${res.status} ${res.statusText}`);
-    }
-
-    const data = await res.json();
-    const elapsed = Math.round(performance.now() - t0);
-    console.debug(`[fetchResults] ${elapsed}ms`);
+    try{res=await fetch('/api/results',{signal:ctrl.signal});}
+    finally{clearTimeout(tid);}
+    if(!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    const data=await res.json();
     _clearApiErrors();
 
-    const rl = data.regime?.label||'unknown';
-    const rs = data.regime?.score||0;
-    const rc = REGIME_COLORS[rl]||'#3a4a5a';
-    $('regimeLabel').textContent = rl.replace(/_/g,' ').toUpperCase();
-    $('regimeScore').textContent = rs.toFixed(3);
-    $('regimeDot').style.cssText = `background:${rc};box-shadow:0 0 8px ${rc}`;
-    $('statRegime').textContent    = rl.replace(/_/g,' ');
-    $('statRegimeSub').textContent = `Score: ${rs.toFixed(3)}`;
+    // Regime
+    const rl=data.regime?.label||'unknown', rs=data.regime?.score||0;
+    const rc=REGIME_COLORS[rl]||'#3a4a5a';
+    $('regimeLabel').textContent=rl.replace(/_/g,' ').toUpperCase();
+    $('regimeScore').textContent=rs.toFixed(3);
+    $('regimeDot').style.cssText=`background:${rc};box-shadow:0 0 8px ${rc}`;
+    $('statRegime').textContent=rl.replace(/_/g,' ');
+    $('statRegimeSub').textContent=`Score: ${rs.toFixed(3)}`;
 
-    $('statTotal').textContent  = data.total||0;
-    $('statAlerts').textContent = (data.alerts||[]).length;
-    const top = data.top||[];
-    const avg = top.length?(top.reduce((a,r)=>a+r.upside,0)/top.length).toFixed(3):'–';
-    $('statAvgUpside').textContent = avg;
-
-    // Next scheduled scan countdown
-    if(data.next_scan_time){
-      _nextScanTime = new Date(data.next_scan_time);
-    }
-
+    // Stats
+    const top=data.top||[];
+    $('statTotal').textContent=data.total||0;
+    $('statAlerts').textContent=(data.alerts||[]).length;
+    $('statAvgUpside').textContent=top.length?(top.reduce((a,r)=>a+r.upside,0)/top.length).toFixed(3):'–';
+    if(data.next_scan_time) _nextScanTime=new Date(data.next_scan_time);
     if(data.scan_time){
-      const d = new Date(data.scan_time);
-      $('statTime').textContent  = 'Last: '+d.toLocaleTimeString();
-      const stats = data.scan_stats||{};
-      const durStr = stats.duration_s != null ? ` · ${stats.duration_s}s` : '';
-      $('scanMeta').textContent = 'Last scan: '+d.toLocaleString()+durStr+' · Data via Yahoo Finance';
+      const d=new Date(data.scan_time);
+      $('statTime').textContent='Last: '+d.toLocaleTimeString();
+      const stats=data.scan_stats||{};
+      const dur=stats.duration_s!=null?` · ${stats.duration_s}s`:'';
+      $('scanMeta').textContent='Last scan: '+d.toLocaleString()+dur+' · Data via Yahoo Finance';
     }
 
     // Progress
-    const prog  = data.progress||{};
-    const total = prog.total||0;
-    const curr  = prog.current||0;
-    if(data.is_scanning && total > 0){
-      const p = Math.round((curr/total)*100);
+    const prog=data.progress||{},tot=prog.total||0,curr=prog.current||0;
+    if(data.is_scanning && tot>0){
+      const p=Math.round((curr/tot)*100);
       $('progressWrap').classList.add('active');
-      $('progressBar').style.width = p+'%';
+      $('progressBar').style.width=p+'%';
       $('progressLabel').classList.add('active');
-      $('progressLabel').textContent = `SCANNING ${prog.ticker||''} · ${curr}/${total}`;
-      $('scanningTicker').textContent = `⟳ Scanning ${prog.ticker||''}… (${curr}/${total})`;
+      $('progressLabel').textContent=`SCANNING ${prog.ticker||''} · ${curr}/${tot}`;
+      $('scanningTicker').textContent=`⟳ Scanning ${prog.ticker||''}… (${curr}/${tot})`;
     } else {
       $('progressWrap').classList.remove('active');
       $('progressLabel').classList.remove('active');
     }
 
     // Alerts
-    const alerts = data.alerts||[];
-    $('alertCount').textContent = alerts.length;
-    const alertsJson = JSON.stringify(alerts);
-    if(alertsJson !== JSON.stringify(_prevAlerts)){
+    const alerts=data.alerts||[];
+    $('alertCount').textContent=alerts.length;
+    const alertKey=JSON.stringify(alerts.map(a=>a.ticker));
+    if(alertKey!==JSON.stringify(_prevAlerts.map(a=>a.ticker))){
       if(alerts.length){
-        $('alertsGrid').innerHTML = alerts.map((r,i)=>renderCard(r,i)).join('');
-      } else if(!data.is_scanning && data.total > 0){
-        $('alertsGrid').innerHTML = `<div class="empty"><div class="empty-icon">📡</div><div class="empty-text">No tickers passed all alert thresholds this scan.<br>Top results are shown in the table below.</div></div>`;
+        $('alertsGrid').innerHTML=alerts.map((r,i)=>renderCard(r,i)).join('');
+      } else if(!data.is_scanning && data.total>0){
+        $('alertsGrid').innerHTML=`<div class="empty"><div class="empty-icon">📡</div><div class="empty-text">No tickers passed all alert thresholds this scan.<br>Top results are shown in the table below.</div></div>`;
       }
-      _prevAlerts = alerts;
+      _prevAlerts=alerts;
+    }
+
+    // Under $20
+    const u20=data.under20||[];
+    $('under20Count').textContent=u20.length;
+    if(u20.length){
+      $('under20Grid').innerHTML=u20.map((r,i)=>renderUnder20(r,i)).join('');
+    } else if(!data.is_scanning && data.total>0){
+      $('under20Grid').innerHTML=`<div class="empty" style="padding:28px"><div class="empty-text">No sub-$20 movers found this scan.</div></div>`;
     }
 
     // Table
-    $('topCount').textContent = top.length;
-    if(!data.is_scanning || top.length > 0){
-      _allResults = top;
-      showResultsPage(0);
-    }
+    $('topCount').textContent=top.length;
+    if(!data.is_scanning||top.length>0){ _allResults=top; showResultsPage(0); }
 
     // Scan button
-    const btn = $('scanBtn');
-    if(data.is_scanning){
-      btn.textContent = '⟳ Scanning…';
-      btn.classList.add('scanning');
-      btn.disabled = true;
-    } else {
-      btn.textContent = '▶ Run Scan';
-      btn.classList.remove('scanning');
-      btn.disabled = false;
-    }
-    _prevScanning = data.is_scanning;
+    const btn=$('scanBtn');
+    if(data.is_scanning){btn.textContent='⟳ Scanning…';btn.classList.add('scanning');btn.disabled=true;}
+    else{btn.textContent='▶ Run Scan';btn.classList.remove('scanning');btn.disabled=false;}
 
-  } catch(e) {
-    _logApiError('fetchResults', e);
-  }
+  }catch(e){_logApiError('fetchResults',e);}
 }
 
 async function triggerScan(){
   try{
-    const res = await fetch('/api/scan', {method:'POST'});
+    const res=await fetch('/api/scan',{method:'POST'});
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
-  } catch(e){
-    _logApiError('triggerScan', e);
-  }
+  }catch(e){_logApiError('triggerScan',e);}
 }
 
-// ── Keyboard shortcut: Ctrl+R → run scan ─────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if(e.ctrlKey && e.key === 'r'){
-    e.preventDefault();
-    const btn = $('scanBtn');
-    if(!btn.disabled) triggerScan();
-  }
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey&&e.key==='r'){e.preventDefault();if(!$('scanBtn').disabled)triggerScan();}
 });
 
 fetchResults();
-setInterval(fetchResults, 2500);
+setInterval(fetchResults,2500);
 </script>
 </body>
 </html>

@@ -24,6 +24,8 @@ except ImportError:
 
 logger = logging.getLogger("market_data")
 
+REQUEST_DELAY_SECONDS = 0.1  # 100ms delay between yfinance calls
+
 # ── Ticker validation ─────────────────────────────────────────────────────────
 _TICKER_RE = re.compile(r"^[A-Z0-9.\-\^]{1,10}$")
 
@@ -127,9 +129,13 @@ def get_index_data() -> Dict[str, Any]:
             return np.array([])
 
     spy = _fetch("SPY")
+    time.sleep(REQUEST_DELAY_SECONDS)
     qqq = _fetch("QQQ")
+    time.sleep(REQUEST_DELAY_SECONDS)
     iwm = _fetch("IWM")
+    time.sleep(REQUEST_DELAY_SECONDS)
     vix = _fetch("^VIX")
+    time.sleep(REQUEST_DELAY_SECONDS)
 
     # Validate we got usable data for the primary index
     if len(spy) < 20:
@@ -143,6 +149,7 @@ def get_index_data() -> Dict[str, Any]:
     for sym in dow30[:15]:   # limit to 15 to avoid rate limits
         try:
             h = yf.Ticker(sym).history(period="3mo", timeout=5)["Close"].values
+            time.sleep(REQUEST_DELAY_SECONDS)
             ma = _moving_average(h, 50)
             if len(ma) and not np.isnan(ma[-1]) and h[-1] > ma[-1]:
                 above_50 += 1
@@ -197,6 +204,7 @@ def get_stock_data(ticker: str, lookback_days: int = 252) -> Dict[str, Any]:
         t    = yf.Ticker(ticker)
         hist = t.history(period="1y", timeout=5)
         info = t.info or {}
+        time.sleep(REQUEST_DELAY_SECONDS)
     except Exception as exc:
         logger.warning("get_stock_data: yfinance fetch failed for %s: %s — skipping", ticker, exc)
         return {}
@@ -389,6 +397,7 @@ def get_sector_stats(ticker: str) -> Dict[str, Any]:
     try:
         info   = yf.Ticker(ticker).info or {}
         sector = info.get("sector") or "Unknown"
+        time.sleep(REQUEST_DELAY_SECONDS)
     except Exception as exc:
         logger.warning("get_sector_stats: failed to fetch sector for %s: %s", ticker, exc)
         sector = "Unknown"

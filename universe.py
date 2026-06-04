@@ -192,6 +192,7 @@ def get_recent_drops(
     for ticker in base_tickers[:50]:  # cap at 50 to respect rate limits
         try:
             hist = yf.Ticker(ticker).history(period=f"{lookback_days}d", timeout=5)
+            time.sleep(0.1)
             if len(hist) >= 2:
                 open_price = float(hist["Close"].iloc[0])
                 close_price = float(hist["Close"].iloc[-1])

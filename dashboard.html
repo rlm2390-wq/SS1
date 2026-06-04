@@ -7,226 +7,360 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:      #080c10;
-    --surface: #0d1318;
-    --border:  #1a2530;
-    --accent:  #00ff88;
-    --accent2: #00c8ff;
-    --warn:    #ffb800;
-    --danger:  #ff4060;
-    --muted:   #3a4a5a;
-    --text:    #c8dae8;
-    --bright:  #eaf4ff;
-  }
+  :root{--bg:#080c10;--surface:#0d1318;--surface2:#111820;--border:#1a2530;--accent:#00ff88;--accent2:#00c8ff;--warn:#ffb800;--danger:#ff4060;--muted:#3a4a5a;--text:#c8dae8;--bright:#eaf4ff;--purple:#c060ff}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;font-size:13px;min-height:100vh;overflow-x:hidden}
   body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,136,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
 
-  /* Header */
-  header{position:relative;z-index:10;border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(8,12,16,.95);backdrop-filter:blur(8px)}
+  /* ── Header ── */
+  header{position:relative;z-index:10;border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;background:rgba(8,12,16,.96);backdrop-filter:blur(8px)}
   .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--bright);letter-spacing:-.5px}
   .logo span{color:var(--accent)}
-  .header-right{display:flex;align-items:center;gap:16px}
+  .header-right{display:flex;align-items:center;gap:12px}
   .regime-badge{display:flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--border);border-radius:4px;background:var(--surface);font-size:11px;text-transform:uppercase;letter-spacing:1px}
-  .regime-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 2s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-  .scan-btn{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:8px 20px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;border-radius:3px;transition:all .2s}
+  .regime-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+  .header-btn{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:7px 16px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;border-radius:3px;transition:all .2s}
+  .header-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+  .scan-btn{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:7px 18px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;border-radius:3px;transition:all .2s}
   .scan-btn:hover{background:var(--accent);color:var(--bg)}
   .scan-btn:disabled{opacity:.4;cursor:not-allowed}
-  .scan-btn.scanning{border-color:var(--warn);color:var(--warn);animation:pulse 1s infinite}
-  .next-scan-badge{font-size:10px;color:var(--muted);letter-spacing:.5px;white-space:nowrap}
+  .scan-btn.scanning{border-color:var(--warn);color:var(--warn);animation:blink 1s infinite}
+  .next-scan-badge{font-size:10px;color:var(--muted);white-space:nowrap}
   .next-scan-badge span{color:var(--accent2)}
+  .kbd-hint{font-size:10px;color:var(--muted)}
+  .kbd{display:inline-block;padding:1px 5px;border:1px solid var(--muted);border-radius:3px;font-size:9px}
 
-  /* Progress bar */
+  /* ── Progress ── */
   .progress-wrap{position:fixed;top:0;left:0;right:0;height:3px;z-index:1000;display:none}
   .progress-wrap.active{display:block}
   .progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .5s ease}
   .progress-label{position:fixed;top:6px;right:16px;font-size:10px;color:var(--accent);letter-spacing:1px;z-index:1001;display:none}
   .progress-label.active{display:block}
 
-  /* Layout */
-  .main{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:20px 24px}
+  /* ── Layout ── */
+  .main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:20px 28px}
 
-  /* Stats bar */
-  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px 20px;position:relative;overflow:hidden}
-  .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:.6}
+  /* ── Stats ── */
+  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;position:relative;overflow:hidden}
+  .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:.7}
+  .stat-card:nth-child(1)::after{background:var(--accent)}
   .stat-card:nth-child(2)::after{background:var(--accent2)}
   .stat-card:nth-child(3)::after{background:var(--warn)}
   .stat-card:nth-child(4)::after{background:var(--danger)}
-  .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px}
-  .stat-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--bright);line-height:1}
-  .stat-sub{font-size:10px;color:var(--muted);margin-top:6px}
+  .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px}
+  .stat-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--bright);line-height:1}
+  .stat-sub{font-size:10px;color:var(--muted);margin-top:5px}
 
-  /* Section */
-  .section-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  /* ── Section headers ── */
+  .section-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
   .section-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--bright)}
   .section-line{flex:1;height:1px;background:var(--border)}
   .section-count{font-size:10px;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:20px}
 
-  /* Alert cards grid */
-  .alerts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;margin-bottom:28px}
-  .alert-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s;animation:fadeIn .4s ease both}
-  .alert-card:hover{border-color:rgba(0,255,136,.5);transform:translateY(-2px)}
-  .alert-card::before{content:'';display:block;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-  .card-body{padding:18px 20px}
-  .card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
-  .card-ticker{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--bright)}
-  .card-sector{font-size:10px;color:var(--muted);margin-top:2px}
-  .card-price{font-size:18px;font-weight:700;color:var(--accent);text-align:right}
-  .card-price-label{font-size:9px;color:var(--muted);text-align:right}
-
-  /* Score rows */
-  .score-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
-  .score-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);width:52px;flex-shrink:0}
-  .score-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+  /* ── Score bars ── */
+  .score-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .score-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);width:50px;flex-shrink:0}
+  .score-bar-wrap{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
   .score-bar{height:100%;border-radius:3px;transition:width .8s ease}
   .bar-upside{background:linear-gradient(90deg,#00c853,#00ff88)}
   .bar-risk{background:linear-gradient(90deg,#ff4060,#ff8800)}
   .bar-setup{background:linear-gradient(90deg,#00b8ff,#00e5ff)}
-  .bar-tech{background:#00ff88;opacity:.7}
-  .bar-fund{background:#00c8ff;opacity:.7}
-  .bar-sent{background:#ffb800;opacity:.7}
-  .bar-struct{background:#c060ff;opacity:.7}
-  .score-value{font-size:12px;font-weight:700;color:var(--bright);width:38px;text-align:right;flex-shrink:0}
-  .score-hi{color:var(--accent)}
-  .score-mid{color:var(--warn)}
-  .score-lo{color:var(--muted)}
-  .risk-hi{color:var(--danger)}
-  .risk-mid{color:var(--warn)}
-  .risk-lo{color:var(--accent)}
+  .bar-tech{background:#00ff88;opacity:.75}
+  .bar-fund{background:#00c8ff;opacity:.75}
+  .bar-sent{background:#ffb800;opacity:.75}
+  .bar-struct{background:var(--purple);opacity:.75}
+  .score-value{font-size:11px;font-weight:700;color:var(--bright);width:36px;text-align:right;flex-shrink:0}
+  .score-hi{color:var(--accent)} .score-mid{color:var(--warn)} .score-lo{color:var(--muted)}
+  .risk-hi{color:var(--danger)}  .risk-mid{color:var(--warn)}  .risk-lo{color:var(--accent)}
 
-  /* Setup tags */
-  .setups-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
-  .setup-tag{font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:3px;font-weight:700}
+  /* ── Setup tags ── */
+  .setups-row{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 10px}
+  .setup-tag{font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:3px;font-weight:700;cursor:pointer;transition:opacity .15s}
+  .setup-tag:hover{opacity:.8}
   .tag-volatility_breakout{background:rgba(0,255,136,.12);color:var(--accent);border:1px solid rgba(0,255,136,.3)}
   .tag-trend_pullback{background:rgba(0,200,255,.12);color:var(--accent2);border:1px solid rgba(0,200,255,.3)}
   .tag-short_squeeze{background:rgba(255,64,96,.12);color:#ff7090;border:1px solid rgba(255,64,96,.3)}
   .tag-earnings_drift{background:rgba(255,184,0,.12);color:var(--warn);border:1px solid rgba(255,184,0,.3)}
 
+  /* ── Alert cards ── */
+  .alerts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;margin-bottom:28px}
+  .alert-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s;animation:fadeIn .4s ease both}
+  .alert-card:hover{border-color:rgba(0,255,136,.4);transform:translateY(-2px)}
+  .alert-card::before{content:'';display:block;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .card-body{padding:16px 18px}
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+  .card-ticker{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--bright)}
+  .card-sector{font-size:10px;color:var(--muted);margin-top:2px}
+  .card-price{font-size:18px;font-weight:700;color:var(--accent);text-align:right}
+  .card-price-label{font-size:9px;color:var(--muted);text-align:right}
+  .card-actions{display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+  .card-action-btn{flex:1;font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:6px;border-radius:3px;cursor:pointer;transition:all .2s;text-align:center}
+  .btn-narrative{border:1px solid var(--border);background:transparent;color:var(--muted)}
+  .btn-narrative:hover{border-color:var(--accent2);color:var(--accent2)}
+  .btn-narrative.active{border-color:var(--accent2);color:var(--accent2);background:rgba(0,200,255,.08)}
+  .btn-options{border:1px solid var(--border);background:transparent;color:var(--muted)}
+  .btn-options:hover{border-color:var(--purple);color:var(--purple)}
+  .btn-options.active{border-color:var(--purple);color:var(--purple);background:rgba(192,96,255,.08)}
+
   /* ── Narrative panel ── */
-  .narrative{border-top:1px solid var(--border);padding-top:12px;margin-top:4px}
-  .narrative-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;padding:2px 0 6px}
-  .narrative-toggle-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent2)}
-  .narrative-arrow{font-size:12px;color:var(--muted);transition:transform .2s}
-  .narrative-arrow.open{transform:rotate(180deg)}
-  .narrative-body{display:none;padding-top:4px}
-  .narrative-body.open{display:block}
+  .narrative-panel{display:none;padding:12px 0 4px;border-top:1px solid var(--border);margin-top:2px}
+  .narrative-panel.open{display:block}
   .narrative-section{margin-bottom:10px}
   .narrative-section-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:5px}
-  .nt-why   .narrative-section-label{color:var(--accent)}
+  .nt-why .narrative-section-label{color:var(--accent)}
   .nt-watch .narrative-section-label{color:var(--accent2)}
-  .nt-risk  .narrative-section-label{color:var(--danger)}
-  .narrative-bullets{list-style:none;padding:0}
+  .nt-risk .narrative-section-label{color:var(--danger)}
+  .narrative-bullets{list-style:none}
   .narrative-bullets li{font-size:11px;line-height:1.65;color:var(--text);padding:2px 0 2px 14px;position:relative}
   .narrative-bullets li::before{content:'›';position:absolute;left:0}
-  .nt-why   .narrative-bullets li::before{color:var(--accent)}
+  .nt-why .narrative-bullets li::before{color:var(--accent)}
   .nt-watch .narrative-bullets li::before{color:var(--accent2)}
-  .nt-risk  .narrative-bullets li::before{color:var(--danger)}
+  .nt-risk .narrative-bullets li::before{color:var(--danger)}
+
+  /* ── Options panel (inline card) ── */
+  .options-panel{display:none;padding:12px 0 4px;border-top:1px solid var(--border);margin-top:2px}
+  .options-panel.open{display:block}
+  .options-loading{font-size:11px;color:var(--muted);text-align:center;padding:12px 0}
+  .options-exp{margin-bottom:12px}
+  .options-exp-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--purple);margin-bottom:8px;font-weight:700}
+  .options-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+  .opt-stat{background:rgba(0,0,0,.3);border-radius:4px;padding:6px 8px;text-align:center}
+  .opt-stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
+  .opt-stat-value{font-size:13px;font-weight:700;color:var(--bright)}
+  .opt-stat-value.bullish{color:var(--accent)}
+  .opt-stat-value.bearish{color:var(--danger)}
+  .opt-stat-value.neutral{color:var(--warn)}
+  .options-unusual{font-size:10px;padding:4px 10px;border-radius:3px;display:inline-block;margin-bottom:8px}
+  .options-unusual.yes{background:rgba(0,255,136,.12);color:var(--accent);border:1px solid rgba(0,255,136,.3)}
+  .options-unusual.no{background:rgba(58,74,90,.2);color:var(--muted);border:1px solid var(--border)}
+  .opt-table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:4px}
+  .opt-table th{color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:3px 6px;text-align:left;border-bottom:1px solid var(--border)}
+  .opt-table td{padding:3px 6px;border-bottom:1px solid rgba(26,37,48,.4)}
+  .opt-table tr:last-child td{border-bottom:none}
+  .opt-call{color:var(--accent)}
+  .opt-put{color:var(--danger)}
+  .opt-exp-tabs{display:flex;gap:6px;margin-bottom:10px}
+  .opt-exp-tab{font-size:10px;padding:4px 10px;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--muted);transition:all .2s}
+  .opt-exp-tab.active{border-color:var(--purple);color:var(--purple);background:rgba(192,96,255,.08)}
 
   /* ── Under $20 section ── */
   .under20-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:28px}
   .under20-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s;animation:fadeIn .4s ease both}
-  .under20-card:hover{border-color:rgba(255,184,0,.5);transform:translateY(-2px)}
+  .under20-card:hover{border-color:rgba(255,184,0,.4);transform:translateY(-2px)}
   .under20-card::before{content:'';display:block;height:3px;background:linear-gradient(90deg,var(--warn),#ff8c00)}
   .u20-body{padding:14px 16px}
   .u20-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
   .u20-ticker{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--bright)}
   .u20-price{font-size:20px;font-weight:700;color:var(--warn)}
   .u20-sector{font-size:10px;color:var(--muted);margin-bottom:10px}
-  .u20-setups{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
-  .u20-narrative-toggle{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);cursor:pointer;padding-top:6px;border-top:1px solid var(--border);margin-top:6px}
-  .u20-narrative-toggle:hover{color:var(--warn)}
-  .u20-narrative-body{display:none;margin-top:8px}
-  .u20-narrative-body.open{display:block}
+  .u20-why-toggle{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);cursor:pointer;padding-top:8px;border-top:1px solid var(--border);margin-top:6px}
+  .u20-why-toggle:hover{color:var(--warn)}
+  .u20-why-body{display:none;margin-top:8px}
+  .u20-why-body.open{display:block}
   .u20-bullet{font-size:11px;line-height:1.6;color:var(--text);padding:2px 0 2px 12px;position:relative}
   .u20-bullet::before{content:'›';position:absolute;left:0;color:var(--warn)}
 
-  /* Table */
-  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
+  /* ── Table ── */
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px}
   table{width:100%;border-collapse:collapse}
   thead{background:rgba(0,0,0,.3);border-bottom:1px solid var(--border)}
-  th{padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;white-space:nowrap}
-  td{padding:8px 12px;border-bottom:1px solid rgba(26,37,48,.6);white-space:nowrap}
+  th{padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);text-align:left;white-space:nowrap}
+  td{padding:8px 10px;border-bottom:1px solid rgba(26,37,48,.5);white-space:nowrap;font-size:12px}
   tr:last-child td{border-bottom:none}
   tr:hover td{background:rgba(255,255,255,.02)}
   .td-ticker{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--bright)}
-  .td-score{font-weight:700}
-  .mini-bar-wrap{width:80px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
+  .mini-bar-wrap{width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:5px}
   .mini-bar{height:100%;border-radius:2px}
 
-  .scan-meta{font-size:10px;color:var(--muted);text-align:right;margin-top:20px;letter-spacing:.5px}
-
-  /* Empty / loading states */
-  .empty{text-align:center;padding:48px;color:var(--muted)}
-  .empty-icon{font-size:36px;margin-bottom:12px}
-  .empty-text{font-size:12px;line-height:1.8}
-  .scanning-notice{text-align:center;padding:40px;color:var(--muted)}
-  .scanning-ticker{color:var(--accent);font-size:18px;font-family:'Syne',sans-serif;font-weight:700;margin:8px 0}
-  .scanning-sub{font-size:11px;letter-spacing:1px}
-
-  /* Error banner */
-  .error-banner{display:none;position:fixed;bottom:24px;right:24px;z-index:2000;background:#1a0a0e;border:1px solid var(--danger);border-radius:6px;padding:14px 18px;max-width:360px;box-shadow:0 4px 24px rgba(255,64,96,.2)}
-  .error-banner.visible{display:block;animation:fadeIn .3s ease}
-  .error-banner-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--danger);margin-bottom:6px}
-  .error-banner-msg{font-size:11px;color:var(--text);line-height:1.6;word-break:break-word}
-  .error-banner-time{font-size:10px;color:var(--muted);margin-top:6px}
-  .error-banner-close{position:absolute;top:10px;right:12px;cursor:pointer;color:var(--muted);font-size:14px;background:none;border:none;padding:0}
-  .error-banner-close:hover{color:var(--danger)}
-
-  /* Tooltips */
-  [data-tip]{position:relative;cursor:help}
-  [data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a2530;border:1px solid var(--border);color:var(--text);font-size:10px;line-height:1.5;padding:6px 10px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:100}
-  [data-tip]:hover::after{opacity:1}
-
-  .kbd-hint{font-size:10px;color:var(--muted);letter-spacing:.5px}
-  .kbd{display:inline-block;padding:1px 5px;border:1px solid var(--muted);border-radius:3px;font-size:9px;color:var(--muted)}
-
   /* Pagination */
-  .pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:12px}
-  .page-btn{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:6px 16px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;border-radius:3px;transition:all .2s}
+  .pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:10px}
+  .page-btn{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:6px 14px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;border-radius:3px;transition:all .2s}
   .page-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
   .page-btn:disabled{opacity:.3;cursor:not-allowed}
-  .page-indicator{font-size:11px;color:var(--muted);letter-spacing:.5px;min-width:80px;text-align:center}
+  .page-indicator{font-size:11px;color:var(--muted);min-width:80px;text-align:center}
+
+  /* ── Glossary drawer ── */
+  .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;backdrop-filter:blur(4px)}
+  .drawer-overlay.open{display:block}
+  .drawer{position:fixed;top:0;right:0;bottom:0;width:520px;max-width:100vw;background:var(--surface);border-left:1px solid var(--border);z-index:600;transform:translateX(100%);transition:transform .3s ease;overflow-y:auto}
+  .drawer.open{transform:translateX(0)}
+  .drawer-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1}
+  .drawer-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--bright)}
+  .drawer-close{font-size:20px;color:var(--muted);cursor:pointer;background:none;border:none;line-height:1;padding:4px}
+  .drawer-close:hover{color:var(--bright)}
+  .drawer-body{padding:20px 24px}
+  .glossary-section{margin-bottom:28px}
+  .glossary-section-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+  .glossary-item{margin-bottom:18px}
+  .glossary-tag-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .glossary-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--bright)}
+  .glossary-desc{font-size:12px;color:var(--text);line-height:1.7;margin-bottom:6px}
+  .glossary-trigger{font-size:11px;color:var(--muted);line-height:1.6}
+  .glossary-trigger strong{color:var(--accent2)}
+  .glossary-watch{font-size:11px;color:var(--muted);line-height:1.6;margin-top:4px}
+  .glossary-watch strong{color:var(--warn)}
+  .score-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted);margin-bottom:4px}
+
+  /* Error banner */
+  .error-banner{display:none;position:fixed;bottom:20px;right:20px;z-index:2000;background:#1a0a0e;border:1px solid var(--danger);border-radius:6px;padding:12px 16px;max-width:340px}
+  .error-banner.visible{display:block;animation:fadeIn .3s ease}
+  .error-banner-title{font-size:11px;text-transform:uppercase;color:var(--danger);margin-bottom:5px}
+  .error-banner-msg{font-size:11px;color:var(--text);line-height:1.5}
+  .error-banner-time{font-size:10px;color:var(--muted);margin-top:4px}
+  .error-banner-close{position:absolute;top:10px;right:12px;cursor:pointer;color:var(--muted);background:none;border:none;font-size:14px}
+
+  .scan-meta{font-size:10px;color:var(--muted);text-align:right;margin-top:8px}
+  .empty{text-align:center;padding:40px;color:var(--muted)}
+  .empty-icon{font-size:32px;margin-bottom:10px}
+  .empty-text{font-size:12px;line-height:1.8}
+  .scanning-notice{text-align:center;padding:36px;color:var(--muted)}
+  .scanning-ticker{color:var(--accent);font-size:16px;font-family:'Syne',sans-serif;font-weight:700;margin:8px 0}
+
+  [data-tip]{position:relative;cursor:help}
+  [data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100%+6px);left:50%;transform:translateX(-50%);background:#1a2530;border:1px solid var(--border);color:var(--text);font-size:10px;padding:5px 9px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:100}
+  [data-tip]:hover::after{opacity:1}
 
   @media(max-width:900px){
-    header{padding:14px 16px}
-    .main{padding:20px 16px}
+    header{padding:12px 16px}
+    .main{padding:16px}
     .stats-bar{grid-template-columns:repeat(2,1fr)}
     .alerts-grid,.under20-grid{grid-template-columns:1fr}
+    .drawer{width:100vw}
   }
 </style>
 </head>
 <body>
 
-<div class="progress-wrap" id="progressWrap">
-  <div class="progress-bar" id="progressBar"></div>
-</div>
+<div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
 <div class="progress-label" id="progressLabel"></div>
+
+<!-- Glossary drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeGlossary()"></div>
+<div class="drawer" id="glossaryDrawer">
+  <div class="drawer-header">
+    <div class="drawer-title">📖 Signal Glossary</div>
+    <button class="drawer-close" onclick="closeGlossary()">✕</button>
+  </div>
+  <div class="drawer-body">
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Setup Signals — Pre-Move Patterns</div>
+
+      <div class="glossary-item">
+        <div class="glossary-tag-row">
+          <span class="setup-tag tag-trend_pullback" style="cursor:default">Trend Pullback</span>
+        </div>
+        <div class="glossary-name">Trend Pullback</div>
+        <div class="glossary-desc">A stock in a confirmed uptrend has pulled back to a key support level (20-day or 50-day moving average) on declining volume. This is one of the cleanest setups in trading — you're buying a temporary dip in a stock that's already proven it wants to go higher.</div>
+        <div class="glossary-trigger"><strong>Triggers when:</strong> Price is above the 50-day MA (uptrend confirmed) AND is within 5–7% of the 20/50-day MA AND RSI has cooled to the 25–55 range AND volume on the pullback is lower than average (healthy, not panic selling).</div>
+        <div class="glossary-watch"><strong>Watch for:</strong> A reversal candle at support (hammer, engulfing) with volume picking back up. That's your entry signal.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-tag-row">
+          <span class="setup-tag tag-volatility_breakout" style="cursor:default">Volatility Breakout</span>
+        </div>
+        <div class="glossary-name">Volatility Breakout</div>
+        <div class="glossary-desc">The stock has been trading in a very tight range (low volatility / price compression) near its recent highs. This kind of coiling action often precedes a sharp move. Think of it like a spring being compressed — the tighter the range, the bigger the potential move when it breaks.</div>
+        <div class="glossary-trigger"><strong>Triggers when:</strong> Bollinger Band width is in the bottom 30% of its recent history (compression confirmed) AND price is within 8% of its 52-week high AND technical score is strong.</div>
+        <div class="glossary-watch"><strong>Watch for:</strong> A close above the recent resistance level on 2x or more the average volume. That's the breakout confirmation.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-tag-row">
+          <span class="setup-tag tag-short_squeeze" style="cursor:default">Short Squeeze</span>
+        </div>
+        <div class="glossary-name">Short Squeeze</div>
+        <div class="glossary-desc">A large percentage of this stock's float is sold short — meaning many traders are betting the price goes down. If the stock starts moving up instead, those short sellers are forced to buy shares to cover their losses, which pushes the price even higher. This can cause explosive, rapid moves.</div>
+        <div class="glossary-trigger"><strong>Triggers when:</strong> Short float is above 15% AND days-to-cover is above 3 AND price is turning upward AND volume is accelerating above the 20-day average.</div>
+        <div class="glossary-watch"><strong>Watch for:</strong> Sustained volume with the stock unable to be pushed lower by sellers. Short squeezes can move 20–50%+ in days but can also reverse violently. Size carefully.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-tag-row">
+          <span class="setup-tag tag-earnings_drift" style="cursor:default">Earnings Drift</span>
+        </div>
+        <div class="glossary-name">Earnings Drift (PEAD)</div>
+        <div class="glossary-desc">Post-Earnings Announcement Drift — one of the most well-documented patterns in finance. When a company beats earnings estimates, the market often under-reacts initially and the stock continues drifting higher for days or weeks after the announcement as more investors pile in.</div>
+        <div class="glossary-trigger"><strong>Triggers when:</strong> Quarterly earnings growth is above 15% AND the stock is not yet overbought (RSI below 65) AND both technical AND fundamental scores are strong (the beat hasn't been fully priced in yet).</div>
+        <div class="glossary-watch"><strong>Watch for:</strong> Continued institutional buying (increasing volume on up days). The drift typically plays out over 2–4 weeks.</div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Score Definitions (0–1 scale)</div>
+
+      <div class="glossary-item">
+        <div class="glossary-name" style="color:var(--accent)">Upside Score</div>
+        <div class="glossary-desc">The master score — a weighted combination of all six factor groups below. Think of it as an overall "how interesting is this opportunity" rating. Above 0.65 is high. The bot only alerts when this clears the configured threshold AND all other gates pass.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-name" style="color:var(--danger)">Risk Score</div>
+        <div class="glossary-desc">How dangerous this position is to hold. Combines liquidity (how easy it is to get in/out without moving the price), daily volatility (ATR as % of price), and gap history (how often it makes large overnight moves). Lower is safer. The bot filters out anything above 0.60.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-name">Tech Score</div>
+        <div class="glossary-desc">Pure price action. Looks at trend alignment (price vs 20/50/200-day MAs), volatility compression, RSI, and whether volume is accumulating on up days vs down days. High = stock is in a technically healthy position.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-name">Fund Score</div>
+        <div class="glossary-desc">Business quality. Revenue and earnings growth rates, gross margin trends, valuation relative to sector peers (PEG ratio, EV/Sales), and balance sheet health (debt levels, cash runway). High = growing business at a reasonable valuation.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-name">Sent Score</div>
+        <div class="glossary-desc">Market perception. Aggregates news headline sentiment (positive/negative keyword scoring), analyst upgrade/downgrade activity and price target changes, and options flow signals (call-to-put ratios, unusual options volume). High = the market is warming up to this name.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-name">Struct Score</div>
+        <div class="glossary-desc">Supply/demand dynamics. Looks at short interest (% of float sold short + days to cover), float size (smaller float = more explosive moves), institutional ownership, and insider buying activity. High = structural setup favors buyers over sellers.</div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Market Regime Labels</div>
+      <div class="glossary-item">
+        <div class="glossary-desc" style="line-height:2">
+          <span style="color:var(--accent)">■</span> <strong style="color:var(--bright)">Risk On Strong</strong> — SPY in uptrend, broad market breadth healthy, VIX low. Best environment for momentum trades.<br>
+          <span style="color:var(--accent)">■</span> <strong style="color:var(--bright)">Risk On</strong> — Generally positive but not as clean. Most setups still work.<br>
+          <span style="color:var(--warn)">■</span> <strong style="color:var(--bright)">Choppy</strong> — Mixed signals. Stick to the highest-conviction setups only. Reduce position sizes.<br>
+          <span style="color:#ff8040">■</span> <strong style="color:var(--bright)">Risk Off</strong> — Market under pressure. Defensive posture. The bot raises the bar for alerts.<br>
+          <span style="color:var(--danger)">■</span> <strong style="color:var(--bright)">Panic</strong> — Broad selloff. Very few signals will pass. Cash is a position.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Error banner -->
+<div class="error-banner" id="errorBanner">
+  <button class="error-banner-close" onclick="dismissError()">✕</button>
+  <div class="error-banner-title">⚠ API Error</div>
+  <div class="error-banner-msg" id="errorMsg"></div>
+  <div class="error-banner-time" id="errorTime"></div>
+</div>
 
 <header>
   <div class="logo">STOCK<span>BOT</span></div>
   <div class="header-right">
     <div class="regime-badge">
       <div class="regime-dot" id="regimeDot"></div>
-      <span id="regimeLabel">–</span>
-      &nbsp;·&nbsp;
-      <span id="regimeScore">–</span>
+      <span id="regimeLabel">–</span>&nbsp;·&nbsp;<span id="regimeScore">–</span>
     </div>
-    <div class="next-scan-badge" id="nextScanBadge" style="display:none">Next scan in <span id="nextScanCountdown">–</span></div>
+    <div class="next-scan-badge" id="nextScanBadge" style="display:none">Next in <span id="nextScanCountdown">–</span></div>
+    <button class="header-btn" onclick="openGlossary()">📖 Signal Guide</button>
     <button class="scan-btn" id="scanBtn" onclick="triggerScan()">▶ Run Scan</button>
     <span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">R</span></span>
   </div>
 </header>
-
-<div class="error-banner" id="errorBanner" role="alert">
-  <button class="error-banner-close" onclick="dismissError()" aria-label="Dismiss">✕</button>
-  <div class="error-banner-title">⚠ API Error</div>
-  <div class="error-banner-msg" id="errorMsg">Unable to reach the server.</div>
-  <div class="error-banner-time" id="errorTime"></div>
-</div>
 
 <div class="main">
   <div class="stats-bar">
@@ -236,25 +370,25 @@
       <div class="stat-sub" id="statTime">Not yet run</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label" data-tip="Tickers that passed all alert thresholds (upside, risk, setup, regime)">Alerts Fired</div>
+      <div class="stat-label" data-tip="Tickers that passed all alert thresholds simultaneously">Alerts Fired</div>
       <div class="stat-value" id="statAlerts">–</div>
       <div class="stat-sub">Passed all filters</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label" data-tip="Mean composite upside score (0–1) across all scanned tickers">Avg Upside Score</div>
+      <div class="stat-label" data-tip="Average composite upside score across all scanned tickers">Avg Upside Score</div>
       <div class="stat-value" id="statAvgUpside">–</div>
       <div class="stat-sub">Across universe</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label" data-tip="Current macro regime derived from SPY, VIX, breadth, and momentum signals">Market Regime</div>
-      <div class="stat-value" id="statRegime" style="font-size:16px;margin-top:4px">–</div>
+      <div class="stat-label" data-tip="Current macro regime from SPY trend, VIX, breadth, and put/call ratio">Market Regime</div>
+      <div class="stat-value" id="statRegime" style="font-size:15px;margin-top:4px">–</div>
       <div class="stat-sub" id="statRegimeSub">–</div>
     </div>
   </div>
 
   <!-- Alerts -->
   <div class="section-header">
-    <div class="section-title">🔔 Alerts</div>
+    <div class="section-title">🔔 Top Alerts</div>
     <div class="section-line"></div>
     <div class="section-count" id="alertCount">0</div>
   </div>
@@ -265,23 +399,19 @@
     </div>
   </div>
 
-  <!-- Under $20 Poppers -->
+  <!-- Under $20 -->
   <div class="section-header">
     <div class="section-title">⚡ Under $20 — Popping</div>
     <div class="section-line"></div>
     <div class="section-count" id="under20Count">0</div>
   </div>
-  <div style="font-size:11px;color:var(--muted);margin-bottom:12px">
-    Sub-$20 stocks with technical momentum. Higher risk — size positions accordingly.
-  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Sub-$20 stocks with technical momentum. Higher risk — size positions accordingly.</div>
   <div class="under20-grid" id="under20Grid">
-    <div class="empty" style="padding:28px">
-      <div class="empty-text">No sub-$20 movers found yet.</div>
-    </div>
+    <div class="empty" style="padding:28px"><div class="empty-text">No sub-$20 movers found yet.</div></div>
   </div>
 
-  <!-- All results table -->
-  <div class="section-header" style="margin-top:8px">
+  <!-- All results -->
+  <div class="section-header">
     <div class="section-title">📊 All Results</div>
     <div class="section-line"></div>
     <div class="section-count" id="topCount">0</div>
@@ -292,243 +422,281 @@
         <tr>
           <th>Ticker</th><th>Sector</th><th>Price</th>
           <th>Upside ↓</th><th>Risk</th>
-          <th>Technical</th><th>Fundamental</th><th>Sentiment</th><th>Structural</th>
-          <th>Setups</th>
+          <th>Tech</th><th>Fund</th><th>Sent</th><th>Struct</th><th>Setups</th>
         </tr>
       </thead>
       <tbody id="resultsBody">
         <tr><td colspan="10" class="scanning-notice">
           <div class="scanning-ticker" id="scanningTicker">Starting up…</div>
-          <div class="scanning-sub">Connecting to Yahoo Finance</div>
+          <div style="font-size:11px">Connecting to Yahoo Finance</div>
         </td></tr>
       </tbody>
     </table>
   </div>
 
   <div class="pagination" id="pagination" style="display:none">
-    <button class="page-btn" id="prevPageBtn" onclick="showResultsPage(_currentResultsPage - 1)" disabled>← Prev</button>
+    <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)" disabled>← Prev</button>
     <span class="page-indicator" id="pageIndicator">Page 1</span>
-    <button class="page-btn" id="nextPageBtn" onclick="showResultsPage(_currentResultsPage + 1)">Next →</button>
+    <button class="page-btn" id="nextPageBtn" onclick="changePage(1)">Next →</button>
   </div>
 
   <div class="scan-meta" id="scanMeta"></div>
 </div>
 
 <script>
-const REGIME_COLORS = {
-  risk_on_strong:'#00ff88', risk_on:'#00ff88',
-  choppy:'#ffb800', risk_off:'#ff8040', panic:'#ff4060', unknown:'#3a4a5a'
-};
+const REGIME_COLORS={risk_on_strong:'#00ff88',risk_on:'#00ff88',choppy:'#ffb800',risk_off:'#ff8040',panic:'#ff4060',unknown:'#3a4a5a'};
+const $=id=>document.getElementById(id);
+let _apiErrors=0,_nextScanTime=null,_prevAlertTickers='',_allResults=[],_page=0;
+const PAGE_SIZE=50;
 
-let _apiErrorCount = 0, _lastApiErrorTime = null;
-const API_ERROR_THRESHOLD = 3, FETCH_TIMEOUT_MS = 5000;
-
-function _logApiError(ctx, err){
-  _apiErrorCount++;
-  _lastApiErrorTime = new Date();
-  if(_apiErrorCount >= API_ERROR_THRESHOLD) showErrorBanner(err.message||String(err), _lastApiErrorTime);
+// ── Error handling ────────────────────────────────────────────────────────────
+function _logErr(ctx,e){
+  _apiErrors++;
+  if(_apiErrors>=3){$('errorMsg').textContent=e.message||String(e);$('errorTime').textContent='Last: '+new Date().toLocaleTimeString();$('errorBanner').classList.add('visible');}
 }
-function _clearApiErrors(){ _apiErrorCount = 0; }
-function showErrorBanner(msg, time){
-  $('errorMsg').textContent  = msg;
-  $('errorTime').textContent = 'Last error: ' + time.toLocaleTimeString();
-  $('errorBanner').classList.add('visible');
-}
-function dismissError(){
-  $('errorBanner').classList.remove('visible');
-  _apiErrorCount = 0;
-}
+function _clearErrors(){_apiErrors=0;}
+function dismissError(){$('errorBanner').classList.remove('visible');_apiErrors=0;}
 
-const $ = id => document.getElementById(id);
-
-function scoreClass(v){ return v>=.65?'score-hi':v>=.45?'score-mid':'score-lo' }
-function riskClass(v){  return v>=.6?'risk-hi':v>=.4?'risk-mid':'risk-lo' }
-function pct(v){ return Math.round(v*100)+'%' }
-function fmt(v){ return v.toFixed(3) }
-function fp(p){  return p ? '$'+p.toFixed(2) : '—' }
-function miniBar(v,c){ return `<span class="mini-bar-wrap"><span class="mini-bar ${c}" style="width:${pct(v)}"></span></span>` }
-function setupTags(s){
-  if(!s||!s.length) return '<span style="color:var(--muted);font-size:10px">—</span>';
-  return s.map(x=>`<span class="setup-tag tag-${x}">${x.replace(/_/g,' ')}</span>`).join('');
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function sc(v){return v>=.65?'score-hi':v>=.45?'score-mid':'score-lo'}
+function rc(v){return v>=.6?'risk-hi':v>=.4?'risk-mid':'risk-lo'}
+function pct(v){return Math.round(v*100)+'%'}
+function fmt(v){return v.toFixed(3)}
+function fp(p){return p?'$'+p.toFixed(2):'—'}
+function mb(v,c){return`<span class="mini-bar-wrap"><span class="mini-bar ${c}" style="width:${pct(v)}"></span></span>`}
+function tags(s){
+  if(!s||!s.length) return'<span style="color:var(--muted);font-size:10px">—</span>';
+  return s.map(x=>`<span class="setup-tag tag-${x}" onclick="openGlossary()" title="Click for explanation">${x.replace(/_/g,' ')}</span>`).join('');
 }
 
-// ── Alert card with narrative ─────────────────────────────────────────────────
-function renderCard(r, i){
-  const f = r.factor_scores;
-  const n = r.narrative || {};
-  const why   = n.why        || [];
-  const watch = n.watch_for  || [];
-  const risks = n.risk_flags || [];
-  const nid   = `n-${r.ticker}-${i}`;
+// ── Glossary drawer ───────────────────────────────────────────────────────────
+function openGlossary(){
+  $('glossaryDrawer').classList.add('open');
+  $('drawerOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeGlossary(){
+  $('glossaryDrawer').classList.remove('open');
+  $('drawerOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
 
-  const whyHtml = why.length
-    ? `<div class="narrative-section nt-why">
-        <div class="narrative-section-label">📌 Why it flagged</div>
-        <ul class="narrative-bullets">${why.map(b=>`<li>${b}</li>`).join('')}</ul>
-       </div>` : '';
-  const watchHtml = watch.length
-    ? `<div class="narrative-section nt-watch">
-        <div class="narrative-section-label">👁 Watch for</div>
-        <ul class="narrative-bullets">${watch.map(b=>`<li>${b}</li>`).join('')}</ul>
-       </div>` : '';
-  const riskHtml = risks.length
-    ? `<div class="narrative-section nt-risk">
-        <div class="narrative-section-label">⚠ Risk flags</div>
-        <ul class="narrative-bullets">${risks.map(b=>`<li>${b}</li>`).join('')}</ul>
-       </div>` : '';
+// ── Alert cards ───────────────────────────────────────────────────────────────
+function renderCard(r,i){
+  const f=r.factor_scores, n=r.narrative||{};
+  const why=n.why||[], watch=n.watch_for||[], risks=n.risk_flags||[];
+  const nid=`n${i}`, oid=`o${i}`;
 
-  return `<div class="alert-card" style="animation-delay:${i*50}ms">
+  const whyHtml=why.length?`<div class="narrative-section nt-why"><div class="narrative-section-label">📌 Why it flagged</div><ul class="narrative-bullets">${why.map(b=>`<li>${b}</li>`).join('')}</ul></div>`:'';
+  const watchHtml=watch.length?`<div class="narrative-section nt-watch"><div class="narrative-section-label">👁 Watch for</div><ul class="narrative-bullets">${watch.map(b=>`<li>${b}</li>`).join('')}</ul></div>`:'';
+  const riskHtml=risks.length?`<div class="narrative-section nt-risk"><div class="narrative-section-label">⚠ Risk flags</div><ul class="narrative-bullets">${risks.map(b=>`<li>${b}</li>`).join('')}</ul></div>`:'';
+
+  return`<div class="alert-card" style="animation-delay:${i*50}ms">
   <div class="card-body">
     <div class="card-top">
-      <div>
-        <div class="card-ticker">${r.ticker}</div>
-        <div class="card-sector">${r.sector||'—'}</div>
-      </div>
-      <div>
-        <div class="card-price-label">LAST PRICE</div>
-        <div class="card-price">${fp(r.last_price)}</div>
-      </div>
+      <div><div class="card-ticker">${r.ticker}</div><div class="card-sector">${r.sector||'—'}</div></div>
+      <div><div class="card-price-label">LAST PRICE</div><div class="card-price">${fp(r.last_price)}</div></div>
     </div>
-
-    <div class="score-row"><div class="score-label" data-tip="Composite upside score (0–1). Higher = stronger opportunity.">Upside</div><div class="score-bar-wrap"><div class="score-bar bar-upside" style="width:${pct(r.upside)}"></div></div><div class="score-value ${scoreClass(r.upside)}">${fmt(r.upside)}</div></div>
-    <div class="score-row"><div class="score-label" data-tip="Risk (0–1). Lower is safer. Combines volatility and liquidity.">Risk</div><div class="score-bar-wrap"><div class="score-bar bar-risk" style="width:${pct(r.risk)}"></div></div><div class="score-value ${riskClass(r.risk)}">${fmt(r.risk)}</div></div>
-    <div class="score-row"><div class="score-label" data-tip="Setup quality (0–1). Pattern strength across detected setups.">Setup</div><div class="score-bar-wrap"><div class="score-bar bar-setup" style="width:${pct(r.setup_score||0)}"></div></div><div class="score-value">${fmt(r.setup_score||0)}</div></div>
-    <div style="border-top:1px solid var(--border);margin:10px 0 8px;padding-top:10px">
-      <div class="score-row"><div class="score-label" data-tip="Trend, momentum, RSI, Bollinger Bands, moving averages.">Tech</div><div class="score-bar-wrap"><div class="score-bar bar-tech" style="width:${pct(f.technical||0)}"></div></div><div class="score-value">${fmt(f.technical||0)}</div></div>
-      <div class="score-row"><div class="score-label" data-tip="Revenue growth, margins, PEG ratio, EV/Sales vs sector.">Fund</div><div class="score-bar-wrap"><div class="score-bar bar-fund" style="width:${pct(f.fundamental||0)}"></div></div><div class="score-value">${fmt(f.fundamental||0)}</div></div>
-      <div class="score-row"><div class="score-label" data-tip="News tone, analyst revisions, options flow.">Sent</div><div class="score-bar-wrap"><div class="score-bar bar-sent" style="width:${pct(f.sentiment||0)}"></div></div><div class="score-value">${fmt(f.sentiment||0)}</div></div>
-      <div class="score-row"><div class="score-label" data-tip="Float, institutional ownership, short interest, insider activity.">Struct</div><div class="score-bar-wrap"><div class="score-bar bar-struct" style="width:${pct(f.structural||0)}"></div></div><div class="score-value">${fmt(f.structural||0)}</div></div>
+    <div class="score-row"><div class="score-label" data-tip="Composite upside score. Higher = stronger opportunity.">Upside</div><div class="score-bar-wrap"><div class="score-bar bar-upside" style="width:${pct(r.upside)}"></div></div><div class="score-value ${sc(r.upside)}">${fmt(r.upside)}</div></div>
+    <div class="score-row"><div class="score-label" data-tip="Risk score. Lower is safer.">Risk</div><div class="score-bar-wrap"><div class="score-bar bar-risk" style="width:${pct(r.risk)}"></div></div><div class="score-value ${rc(r.risk)}">${fmt(r.risk)}</div></div>
+    <div class="score-row"><div class="score-label" data-tip="Setup pattern strength.">Setup</div><div class="score-bar-wrap"><div class="score-bar bar-setup" style="width:${pct(r.setup_score||0)}"></div></div><div class="score-value">${fmt(r.setup_score||0)}</div></div>
+    <div style="border-top:1px solid var(--border);margin:8px 0 6px;padding-top:8px">
+      <div class="score-row"><div class="score-label" data-tip="Trend, RSI, Bollinger Bands, volume.">Tech</div><div class="score-bar-wrap"><div class="score-bar bar-tech" style="width:${pct(f.technical||0)}"></div></div><div class="score-value">${fmt(f.technical||0)}</div></div>
+      <div class="score-row"><div class="score-label" data-tip="Revenue growth, margins, valuation vs sector.">Fund</div><div class="score-bar-wrap"><div class="score-bar bar-fund" style="width:${pct(f.fundamental||0)}"></div></div><div class="score-value">${fmt(f.fundamental||0)}</div></div>
+      <div class="score-row"><div class="score-label" data-tip="News sentiment, analyst revisions, options flow.">Sent</div><div class="score-bar-wrap"><div class="score-bar bar-sent" style="width:${pct(f.sentiment||0)}"></div></div><div class="score-value">${fmt(f.sentiment||0)}</div></div>
+      <div class="score-row"><div class="score-label" data-tip="Short interest, float, insider buying.">Struct</div><div class="score-bar-wrap"><div class="score-bar bar-struct" style="width:${pct(f.structural||0)}"></div></div><div class="score-value">${fmt(f.structural||0)}</div></div>
     </div>
-
-    <div class="setups-row">${setupTags(r.setups)}</div>
-
-    <div class="narrative">
-      <div class="narrative-toggle" onclick="toggleNarrative('${nid}')">
-        <span class="narrative-toggle-label">📖 What does this mean?</span>
-        <span class="narrative-arrow" id="arr-${nid}">▾</span>
-      </div>
-      <div class="narrative-body" id="${nid}">
-        ${whyHtml}${watchHtml}${riskHtml}
-      </div>
+    <div class="setups-row">${tags(r.setups)}</div>
+    <div class="card-actions">
+      <div class="card-action-btn btn-narrative" id="btn-${nid}" onclick="togglePanel('${nid}','${oid}',this)">📖 Why it flagged</div>
+      <div class="card-action-btn btn-options"   id="btn-${oid}" onclick="toggleOptions('${oid}','${nid}','${r.ticker}',this)">📊 Options</div>
     </div>
+    <div class="narrative-panel" id="${nid}">${whyHtml}${watchHtml}${riskHtml}</div>
+    <div class="options-panel"   id="${oid}"><div class="options-loading">Loading options data…</div></div>
   </div>
 </div>`;
 }
 
-function toggleNarrative(id){
-  const body = $(id), arr = $('arr-'+id);
-  const open = body.classList.toggle('open');
-  arr.classList.toggle('open', open);
+function togglePanel(panelId, otherPanelId, btn){
+  const panel=$(panelId), other=$(otherPanelId);
+  const otherBtn=$('btn-'+otherPanelId);
+  const opening=!panel.classList.contains('open');
+  // Close the other panel first
+  other.classList.remove('open');
+  if(otherBtn){otherBtn.classList.remove('active');}
+  // Toggle this one
+  panel.classList.toggle('open', opening);
+  btn.classList.toggle('active', opening);
+}
+
+// ── Options panel ─────────────────────────────────────────────────────────────
+const _optionsCache={};
+
+async function toggleOptions(panelId, otherPanelId, ticker, btn){
+  const panel=$(panelId), other=$(otherPanelId);
+  const otherBtn=$('btn-'+otherPanelId);
+  const opening=!panel.classList.contains('open');
+  other.classList.remove('open');
+  if(otherBtn) otherBtn.classList.remove('active');
+  panel.classList.toggle('open', opening);
+  btn.classList.toggle('active', opening);
+  if(!opening) return;
+  if(_optionsCache[ticker]){renderOptions(panelId, _optionsCache[ticker]); return;}
+  panel.innerHTML='<div class="options-loading">⟳ Fetching options chain…</div>';
+  try{
+    const res=await fetch(`/api/options/${ticker}`);
+    const data=await res.json();
+    if(data.error){panel.innerHTML=`<div class="options-loading" style="color:var(--danger)">${data.error}</div>`;return;}
+    _optionsCache[ticker]=data;
+    renderOptions(panelId, data);
+  }catch(e){
+    panel.innerHTML=`<div class="options-loading" style="color:var(--danger)">Failed to load options: ${e.message}</div>`;
+  }
+}
+
+function renderOptions(panelId, data){
+  const panel=$(panelId);
+  const exps=data.expirations||[];
+  if(!exps.length){panel.innerHTML='<div class="options-loading">No options data available</div>';return;}
+
+  let tabsHtml=exps.map((e,i)=>`<div class="opt-exp-tab ${i===0?'active':''}" id="tab-${panelId}-${i}" onclick="switchExpTab('${panelId}',${i},${exps.length})">${e.expiry}</div>`).join('');
+
+  let contentHtml=exps.map((e,idx)=>{
+    const cprVal=e.cpr||1;
+    const cprColor=cprVal>=2?'bullish':cprVal<=0.5?'bearish':'neutral';
+    const ivColor=e.avg_iv>60?'bearish':e.avg_iv<30?'bullish':'neutral';
+
+    const callRows=e.top_calls.map(c=>`<tr>
+      <td class="opt-call">$${(c.strike||0).toFixed(1)}</td>
+      <td>$${(c.lastPrice||0).toFixed(2)}</td>
+      <td>${(c.volume||0).toLocaleString()}</td>
+      <td>${(c.openInterest||0).toLocaleString()}</td>
+      <td>${((c.impliedVolatility||0)*100).toFixed(0)}%</td>
+    </tr>`).join('');
+
+    const putRows=e.top_puts.map(p=>`<tr>
+      <td class="opt-put">$${(p.strike||0).toFixed(1)}</td>
+      <td>$${(p.lastPrice||0).toFixed(2)}</td>
+      <td>${(p.volume||0).toLocaleString()}</td>
+      <td>${(p.openInterest||0).toLocaleString()}</td>
+      <td>${((p.impliedVolatility||0)*100).toFixed(0)}%</td>
+    </tr>`).join('');
+
+    return`<div class="options-exp" id="exp-${panelId}-${idx}" style="display:${idx===0?'block':'none'}">
+      <div class="options-stats">
+        <div class="opt-stat"><div class="opt-stat-label">Call/Put Ratio</div><div class="opt-stat-value ${cprColor}">${cprVal}x</div></div>
+        <div class="opt-stat"><div class="opt-stat-label">Avg IV</div><div class="opt-stat-value ${ivColor}">${e.avg_iv}%</div></div>
+        <div class="opt-stat"><div class="opt-stat-label">Call OI</div><div class="opt-stat-value">${(e.call_oi||0).toLocaleString()}</div></div>
+      </div>
+      <div class="options-unusual ${e.unusual?'yes':'no'}">${e.unusual?'⚡ Unusual call activity detected':'Normal options activity'}</div>
+      <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Top Calls</div>
+      <table class="opt-table">
+        <thead><tr><th>Strike</th><th>Last</th><th>Vol</th><th>OI</th><th>IV</th></tr></thead>
+        <tbody>${callRows||'<tr><td colspan="5" style="color:var(--muted);text-align:center">No data</td></tr>'}</tbody>
+      </table>
+      <div style="font-size:10px;color:var(--danger);text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px">Top Puts</div>
+      <table class="opt-table">
+        <thead><tr><th>Strike</th><th>Last</th><th>Vol</th><th>OI</th><th>IV</th></tr></thead>
+        <tbody>${putRows||'<tr><td colspan="5" style="color:var(--muted);text-align:center">No data</td></tr>'}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML=`<div style="font-size:10px;color:var(--muted);margin-bottom:8px">Options chain for <strong style="color:var(--bright)">${data.ticker}</strong> @ ${fp(data.price)}</div>
+  <div class="opt-exp-tabs">${tabsHtml}</div>
+  ${contentHtml}`;
+}
+
+function switchExpTab(panelId, idx, total){
+  for(let i=0;i<total;i++){
+    const tab=$(`tab-${panelId}-${i}`), exp=$(`exp-${panelId}-${i}`);
+    if(tab) tab.classList.toggle('active',i===idx);
+    if(exp) exp.style.display=i===idx?'block':'none';
+  }
 }
 
 // ── Under $20 cards ───────────────────────────────────────────────────────────
-function renderUnder20(r, i){
-  const f   = r.factor_scores;
-  const n   = r.narrative || {};
-  const why = (n.why || []).slice(0, 2);
-  const uid = `u20-${r.ticker}-${i}`;
-
-  const narrativeHtml = why.length ? `
-    <div class="u20-narrative-toggle" onclick="toggleU20('${uid}')">▾ Why it's popping</div>
-    <div class="u20-narrative-body" id="${uid}">
-      ${why.map(b=>`<div class="u20-bullet">${b}</div>`).join('')}
-    </div>` : '';
-
-  return `<div class="under20-card" style="animation-delay:${i*40}ms">
+function renderUnder20(r,i){
+  const f=r.factor_scores, n=r.narrative||{};
+  const why=(n.why||[]).slice(0,2);
+  const uid=`u${i}`;
+  return`<div class="under20-card" style="animation-delay:${i*40}ms">
   <div class="u20-body">
-    <div class="u20-top">
-      <div class="u20-ticker">${r.ticker}</div>
-      <div class="u20-price">${fp(r.last_price)}</div>
-    </div>
+    <div class="u20-top"><div class="u20-ticker">${r.ticker}</div><div class="u20-price">${fp(r.last_price)}</div></div>
     <div class="u20-sector">${r.sector||'—'}</div>
-    <div class="score-row"><div class="score-label">Upside</div><div class="score-bar-wrap"><div class="score-bar bar-upside" style="width:${pct(r.upside)}"></div></div><div class="score-value ${scoreClass(r.upside)}">${fmt(r.upside)}</div></div>
+    <div class="score-row"><div class="score-label">Upside</div><div class="score-bar-wrap"><div class="score-bar bar-upside" style="width:${pct(r.upside)}"></div></div><div class="score-value ${sc(r.upside)}">${fmt(r.upside)}</div></div>
     <div class="score-row"><div class="score-label">Tech</div><div class="score-bar-wrap"><div class="score-bar bar-tech" style="width:${pct(f.technical||0)}"></div></div><div class="score-value">${fmt(f.technical||0)}</div></div>
-    <div class="score-row"><div class="score-label">Risk</div><div class="score-bar-wrap"><div class="score-bar bar-risk" style="width:${pct(r.risk)}"></div></div><div class="score-value ${riskClass(r.risk)}">${fmt(r.risk)}</div></div>
-    <div class="u20-setups">${setupTags(r.setups)}</div>
-    ${narrativeHtml}
+    <div class="score-row"><div class="score-label">Risk</div><div class="score-bar-wrap"><div class="score-bar bar-risk" style="width:${pct(r.risk)}"></div></div><div class="score-value ${rc(r.risk)}">${fmt(r.risk)}</div></div>
+    <div class="setups-row">${tags(r.setups)}</div>
+    ${why.length?`<div class="u20-why-toggle" onclick="$('${uid}').classList.toggle('open')">▾ Why it's popping</div>
+    <div class="u20-why-body" id="${uid}">${why.map(b=>`<div class="u20-bullet">${b}</div>`).join('')}</div>`:''}
   </div>
 </div>`;
 }
 
-function toggleU20(id){
-  const el = $(id);
-  if(el) el.classList.toggle('open');
-}
-
 // ── Table ─────────────────────────────────────────────────────────────────────
-const RESULTS_PAGE_SIZE = 50;
-let _currentResultsPage = 0;
-let _allResults         = [];
-
-function renderTable(rows, page){
-  const slice = rows.slice(page*RESULTS_PAGE_SIZE, (page+1)*RESULTS_PAGE_SIZE);
-  if(!slice.length) return '<tr><td colspan="10" style="padding:32px;text-align:center;color:var(--muted)">No results yet</td></tr>';
+function renderTable(rows,page){
+  const slice=rows.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);
+  if(!slice.length) return'<tr><td colspan="10" style="padding:28px;text-align:center;color:var(--muted)">No results yet</td></tr>';
   return slice.map(r=>{
     const f=r.factor_scores;
-    return `<tr>
+    return`<tr>
       <td class="td-ticker">${r.ticker}</td>
       <td style="color:var(--muted);font-size:11px">${r.sector||'—'}</td>
       <td>${fp(r.last_price)}</td>
-      <td class="td-score ${scoreClass(r.upside)}">${miniBar(r.upside,'bar-upside')}${fmt(r.upside)}</td>
-      <td class="${riskClass(r.risk)}">${fmt(r.risk)}</td>
-      <td>${miniBar(f.technical||0,'bar-tech')}${fmt(f.technical||0)}</td>
-      <td>${miniBar(f.fundamental||0,'bar-fund')}${fmt(f.fundamental||0)}</td>
-      <td>${miniBar(f.sentiment||0,'bar-sent')}${fmt(f.sentiment||0)}</td>
-      <td>${miniBar(f.structural||0,'bar-struct')}${fmt(f.structural||0)}</td>
-      <td>${setupTags(r.setups)}</td>
+      <td class="${sc(r.upside)}" style="font-weight:700">${mb(r.upside,'bar-upside')}${fmt(r.upside)}</td>
+      <td class="${rc(r.risk)}">${fmt(r.risk)}</td>
+      <td>${mb(f.technical||0,'bar-tech')}${fmt(f.technical||0)}</td>
+      <td>${mb(f.fundamental||0,'bar-fund')}${fmt(f.fundamental||0)}</td>
+      <td>${mb(f.sentiment||0,'bar-sent')}${fmt(f.sentiment||0)}</td>
+      <td>${mb(f.structural||0,'bar-struct')}${fmt(f.structural||0)}</td>
+      <td>${tags(r.setups)}</td>
     </tr>`;
   }).join('');
 }
 
-function showResultsPage(pageNum){
-  const totalPages = Math.max(1, Math.ceil(_allResults.length / RESULTS_PAGE_SIZE));
-  pageNum = Math.max(0, Math.min(pageNum, totalPages - 1));
-  _currentResultsPage = pageNum;
-  $('resultsBody').innerHTML = renderTable(_allResults, pageNum);
-  $('pageIndicator').textContent = `Page ${pageNum + 1} of ${totalPages}`;
-  $('prevPageBtn').disabled = pageNum === 0;
-  $('nextPageBtn').disabled = pageNum >= totalPages - 1;
-  $('pagination').style.display = _allResults.length > RESULTS_PAGE_SIZE ? '' : 'none';
+function showResultsPage(p){
+  const total=Math.max(1,Math.ceil(_allResults.length/PAGE_SIZE));
+  _page=Math.max(0,Math.min(p,total-1));
+  $('resultsBody').innerHTML=renderTable(_allResults,_page);
+  $('pageIndicator').textContent=`Page ${_page+1} of ${total}`;
+  $('prevPageBtn').disabled=_page===0;
+  $('nextPageBtn').disabled=_page>=total-1;
+  $('pagination').style.display=_allResults.length>PAGE_SIZE?'':'none';
 }
+function changePage(d){showResultsPage(_page+d);}
 
-// ── Fetch loop ────────────────────────────────────────────────────────────────
-let _prevAlerts   = [];
-let _nextScanTime = null;
-
-function formatCountdown(s){
-  if(s<=0) return '0s';
-  const m=Math.floor(s/60); s=s%60;
-  return m>0?`${m}m ${String(s).padStart(2,'0')}s`:`${s}s`;
-}
+// ── Countdown ─────────────────────────────────────────────────────────────────
 setInterval(()=>{
   const badge=$('nextScanBadge');
   if(!_nextScanTime){badge.style.display='none';return;}
-  const left=Math.max(0,Math.round((_nextScanTime-Date.now())/1000));
+  const s=Math.max(0,Math.round((_nextScanTime-Date.now())/1000));
+  const m=Math.floor(s/60);
   badge.style.display='';
-  $('nextScanCountdown').textContent=formatCountdown(left);
+  $('nextScanCountdown').textContent=m>0?`${m}m ${String(s%60).padStart(2,'0')}s`:`${s}s`;
 },1000);
 
+// ── Fetch loop ────────────────────────────────────────────────────────────────
 async function fetchResults(){
   try{
     const ctrl=new AbortController();
-    const tid=setTimeout(()=>ctrl.abort(),FETCH_TIMEOUT_MS);
+    const tid=setTimeout(()=>ctrl.abort(),6000);
     let res;
     try{res=await fetch('/api/results',{signal:ctrl.signal});}
     finally{clearTimeout(tid);}
-    if(!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
-    _clearApiErrors();
+    _clearErrors();
+    $('errorBanner').classList.remove('visible');
 
-    // Regime
     const rl=data.regime?.label||'unknown', rs=data.regime?.score||0;
-    const rc=REGIME_COLORS[rl]||'#3a4a5a';
+    const rc2=REGIME_COLORS[rl]||'#3a4a5a';
     $('regimeLabel').textContent=rl.replace(/_/g,' ').toUpperCase();
     $('regimeScore').textContent=rs.toFixed(3);
-    $('regimeDot').style.cssText=`background:${rc};box-shadow:0 0 8px ${rc}`;
+    $('regimeDot').style.cssText=`background:${rc2};box-shadow:0 0 8px ${rc2}`;
     $('statRegime').textContent=rl.replace(/_/g,' ');
     $('statRegimeSub').textContent=`Score: ${rs.toFixed(3)}`;
 
-    // Stats
     const top=data.top||[];
     $('statTotal').textContent=data.total||0;
     $('statAlerts').textContent=(data.alerts||[]).length;
@@ -536,15 +704,13 @@ async function fetchResults(){
     if(data.next_scan_time) _nextScanTime=new Date(data.next_scan_time);
     if(data.scan_time){
       const d=new Date(data.scan_time);
-      $('statTime').textContent='Last: '+d.toLocaleTimeString();
       const stats=data.scan_stats||{};
-      const dur=stats.duration_s!=null?` · ${stats.duration_s}s`:'';
-      $('scanMeta').textContent='Last scan: '+d.toLocaleString()+dur+' · Data via Yahoo Finance';
+      $('statTime').textContent='Last: '+d.toLocaleTimeString();
+      $('scanMeta').textContent='Last scan: '+d.toLocaleString()+(stats.duration_s?` · ${stats.duration_s}s`:'')+' · Yahoo Finance';
     }
 
-    // Progress
     const prog=data.progress||{},tot=prog.total||0,curr=prog.current||0;
-    if(data.is_scanning && tot>0){
+    if(data.is_scanning&&tot>0){
       const p=Math.round((curr/tot)*100);
       $('progressWrap').classList.add('active');
       $('progressBar').style.width=p+'%';
@@ -556,48 +722,43 @@ async function fetchResults(){
       $('progressLabel').classList.remove('active');
     }
 
-    // Alerts
     const alerts=data.alerts||[];
     $('alertCount').textContent=alerts.length;
-    const alertKey=JSON.stringify(alerts.map(a=>a.ticker));
-    if(alertKey!==JSON.stringify(_prevAlerts.map(a=>a.ticker))){
+    const alertKey=alerts.map(a=>a.ticker).join(',');
+    if(alertKey!==_prevAlertTickers){
       if(alerts.length){
         $('alertsGrid').innerHTML=alerts.map((r,i)=>renderCard(r,i)).join('');
-      } else if(!data.is_scanning && data.total>0){
+      } else if(!data.is_scanning&&data.total>0){
         $('alertsGrid').innerHTML=`<div class="empty"><div class="empty-icon">📡</div><div class="empty-text">No tickers passed all alert thresholds this scan.<br>Top results are shown in the table below.</div></div>`;
       }
-      _prevAlerts=alerts;
+      _prevAlertTickers=alertKey;
     }
 
-    // Under $20
     const u20=data.under20||[];
     $('under20Count').textContent=u20.length;
     if(u20.length){
       $('under20Grid').innerHTML=u20.map((r,i)=>renderUnder20(r,i)).join('');
-    } else if(!data.is_scanning && data.total>0){
+    } else if(!data.is_scanning&&data.total>0){
       $('under20Grid').innerHTML=`<div class="empty" style="padding:28px"><div class="empty-text">No sub-$20 movers found this scan.</div></div>`;
     }
 
-    // Table
     $('topCount').textContent=top.length;
-    if(!data.is_scanning||top.length>0){ _allResults=top; showResultsPage(0); }
+    if(!data.is_scanning||top.length>0){_allResults=top;showResultsPage(0);}
 
-    // Scan button
     const btn=$('scanBtn');
     if(data.is_scanning){btn.textContent='⟳ Scanning…';btn.classList.add('scanning');btn.disabled=true;}
     else{btn.textContent='▶ Run Scan';btn.classList.remove('scanning');btn.disabled=false;}
 
-  }catch(e){_logApiError('fetchResults',e);}
+  }catch(e){_logErr('fetch',e);}
 }
 
 async function triggerScan(){
-  try{
-    const res=await fetch('/api/scan',{method:'POST'});
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-  }catch(e){_logApiError('triggerScan',e);}
+  try{await fetch('/api/scan',{method:'POST'});}
+  catch(e){_logErr('scan',e);}
 }
 
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeGlossary();
   if(e.ctrlKey&&e.key==='r'){e.preventDefault();if(!$('scanBtn').disabled)triggerScan();}
 });
 

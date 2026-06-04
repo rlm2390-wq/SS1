@@ -40,10 +40,12 @@ _last_regime     = {"label": "unknown", "score": 0.0}
 _last_scan_time  = None
 _is_scanning     = False
 _scan_progress   = {"current": 0, "total": 0, "ticker": ""}
-_last_scan_stats = {"duration_s": None, "tickers_processed": 0, "tickers_skipped": 0}
+_last_scan_stats = {"duration_s": None, "tickers_processed": 0, "tickers_skipped": 0, "scan_mode": ""}
 _next_scan_time  = None
 
-_SCAN_INTERVAL = 600  # 10 minutes
+_SCAN_INTERVAL       = 600   # 10 minutes (quick scan cadence)
+_QUICK_SCAN_INTERVAL = 600   # 10 min — top-100 tickers only
+_scan_count          = 0     # incremented each cycle; every 6th = full scan
 
 
 def schedule_next_scan():
@@ -57,14 +59,25 @@ def schedule_next_scan():
 
 def run_scan_background():
     global _last_results, _last_alerts, _last_under20, _last_regime, _last_scan_time
-    global _is_scanning, _scan_progress, _last_scan_stats
+    global _is_scanning, _scan_progress, _last_scan_stats, _scan_count
 
     with _scan_lock:
         _is_scanning   = True
         _scan_progress = {"current": 0, "total": 0, "ticker": ""}
 
     scan_start = time.monotonic()
-    logger.info("Scan started")
+
+    # Determine scan mode: every 6th cycle is a full scan (60 min cadence),
+    # all other cycles are quick scans over the top 100 tickers only.
+    _scan_count += 1
+    if _scan_count % 6 == 0:
+        tickers   = get_universe()
+        scan_mode = "full"
+        logger.info("Full scan: %d tickers (cycle %d)", len(tickers), _scan_count)
+    else:
+        tickers   = get_universe()[:100]
+        scan_mode = "quick"
+        logger.info("Quick scan: 100 tickers (cycle %d)", _scan_count)
 
     try:
         history_store = HistoryStore()
@@ -77,9 +90,6 @@ def run_scan_background():
 
         rl, rs = regime.compute_market_context(index_data, history_store)
         logger.info("Market regime: %s (score=%.3f)", rl, rs)
-
-        tickers = get_universe()
-        logger.info("Scan universe: %d tickers", len(tickers))
 
         with _scan_lock:
             _scan_progress["total"] = len(tickers)
@@ -140,6 +150,7 @@ def run_scan_background():
                 "duration_s":        scan_duration,
                 "tickers_processed": len(results),
                 "tickers_skipped":   skipped,
+                "scan_mode":         scan_mode,
             }
 
     except Exception as exc:

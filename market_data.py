@@ -43,14 +43,11 @@ class _TTLCache:
     def get(self, key: str):
         entry = self._store.get(key)
         if entry is None:
-            logger.debug("Cache miss: %s", key)
             return None
         value, ts = entry
         if time.monotonic() - ts > self._ttl:
             del self._store[key]
-            logger.debug("Cache expired: %s", key)
             return None
-        logger.debug("Cache hit: %s", key)
         return value
 
     def set(self, key: str, value) -> None:
@@ -194,7 +191,6 @@ def get_stock_data(ticker: str, lookback_days: int = 252) -> Dict[str, Any]:
     cache_key = f"{ticker}:{lookback_days}"
     cached = _stock_cache.get(cache_key)
     if cached is not None:
-        logger.debug("get_stock_data: cache hit for %s", ticker)
         return cached
 
     try:
@@ -388,7 +384,6 @@ def get_sector_stats(ticker: str) -> Dict[str, Any]:
     """
     cached = _sector_cache.get(ticker)
     if cached is not None:
-        logger.debug("get_sector_stats: cache hit for %s", ticker)
         return cached
 
     try:

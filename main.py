@@ -14,6 +14,124 @@ import regime, technical, fundamental, sentiment, structural, risk, setups, scor
 from notifier import send_alert
 
 
+# ── Plain-English narrative generator ────────────────────────────────────────
+
+def build_narrative(
+    ticker: str,
+    factor_scores: Dict[str, float],
+    setups_list: List[str],
+    risk_score: float,
+    upside: float,
+    stock_data: Dict[str, Any],
+    regime_label: str,
+) -> Dict[str, Any]:
+    """
+    Convert raw scores into plain-English bullet points a trader can act on.
+    Returns a dict with 'why', 'watch_for', and 'risk_flags' lists.
+    """
+    why        = []
+    watch_for  = []
+    risk_flags = []
+
+    tech   = factor_scores.get("technical",   0)
+    fund   = factor_scores.get("fundamental", 0)
+    sent   = factor_scores.get("sentiment",   0)
+    struct = factor_scores.get("structural",  0)
+
+    prices  = stock_data.get("prices", [])
+    rsi     = float(stock_data.get("rsi", 50))
+    si      = stock_data.get("short_interest", {})
+    sf      = float(si.get("short_float_pct", 0))
+    dtc     = float(si.get("days_to_cover",   0))
+    f       = stock_data.get("fundamentals",  {})
+    rev_yoy = float(f.get("revenue_yoy",      0))
+    eps_yoy = float(f.get("eps_yoy",          0))
+    options = stock_data.get("options_flow",  {})
+    ins     = stock_data.get("insider_activity", {})
+    net_buy = float(ins.get("net_buy_usd_90d", 0))
+    price   = float(prices[-1]) if len(prices) else 0
+
+    # ── WHY it flagged ────────────────────────────────────────────────────────
+    if tech >= 0.70:
+        ma50  = stock_data.get("ma50",  prices)
+        above = (prices[-1] > ma50[-1]) if (hasattr(ma50, '__len__') and len(ma50)) else False
+        why.append(f"Strong technical setup — price {'above' if above else 'near'} key moving averages with bullish momentum")
+    elif tech >= 0.55:
+        why.append("Decent technical structure with moderate upside momentum")
+
+    if fund >= 0.70:
+        parts = []
+        if rev_yoy > 0.15: parts.append(f"revenue growing {round(rev_yoy*100)}% YoY")
+        if eps_yoy > 0.15: parts.append(f"earnings up {round(eps_yoy*100)}% YoY")
+        why.append(f"Strong fundamentals — {' and '.join(parts)}" if parts else "Strong fundamentals relative to sector peers")
+    elif fund >= 0.55:
+        why.append("Above-average fundamentals for its sector")
+
+    if sf > 20:
+        why.append(f"High short interest ({round(sf)}% of float, {round(dtc,1)} days to cover) — squeeze potential if price breaks out")
+    elif sf > 12:
+        why.append(f"Elevated short interest ({round(sf)}% of float) — shorts could add fuel to any rally")
+
+    if net_buy > 250_000:
+        why.append(f"Insider buying — net ${int(net_buy/1000)}k purchased in the last 90 days")
+
+    if options.get("unusual_options"):
+        cvr = float(options.get("call_vol_ratio", 1))
+        why.append(f"Unusual options activity — call volume running {round(cvr,1)}x above average")
+
+    if sent >= 0.65:
+        why.append("Positive news sentiment and/or analyst upgrades recently")
+
+    if "volatility_breakout" in setups_list:
+        why.append("Price compressing (low volatility) near highs — breakout could be imminent")
+    if "trend_pullback" in setups_list:
+        why.append("Healthy pullback to support in an uptrend — classic buy-the-dip setup")
+    if "short_squeeze" in setups_list:
+        why.append("Short squeeze setup active — heavy short interest with price starting to turn up")
+    if "earnings_drift" in setups_list:
+        why.append("Post-earnings drift — stock beat estimates and hasn't fully priced in the move yet")
+
+    # ── WATCH FOR ─────────────────────────────────────────────────────────────
+    if "volatility_breakout" in setups_list:
+        watch_for.append("Volume spike + close above recent resistance to confirm the breakout")
+    if "trend_pullback" in setups_list:
+        watch_for.append("Price holding MA support on low volume — look for a reversal candle")
+    if "short_squeeze" in setups_list:
+        watch_for.append("Sustained volume above 20-day average and shorts unable to push price lower")
+    if "earnings_drift" in setups_list:
+        watch_for.append("Continued institutional accumulation in days/weeks after the earnings beat")
+    if not watch_for:
+        if tech >= 0.60:
+            watch_for.append("Confirm momentum holds above key moving averages on above-average volume")
+        else:
+            watch_for.append("Wait for a clearer technical signal before acting")
+
+    # ── RISK FLAGS ────────────────────────────────────────────────────────────
+    if risk_score > 0.50:
+        risk_flags.append("Elevated volatility or low liquidity — size this position carefully")
+    if rsi > 72:
+        risk_flags.append(f"RSI at {round(rsi)} — short-term overbought, consider waiting for a pullback")
+    if price < 5:
+        risk_flags.append("Sub-$5 stock — wider spreads, higher volatility, less institutional support")
+    if struct <= 0.30:
+        risk_flags.append("Weak structural profile — limited insider conviction and short-squeeze fuel")
+    if fund <= 0.35:
+        risk_flags.append("Weak fundamentals — this is a technical/momentum play, not a value story")
+    if regime_label in ("risk_off", "panic"):
+        risk_flags.append(f"Market regime is {regime_label.replace('_',' ')} — broad market headwinds present")
+    if sf > 30:
+        risk_flags.append(f"Very high short interest ({round(sf)}%) can cause violent moves in both directions")
+
+    if not why:
+        why.append("Borderline signal — scores are above threshold but conviction is moderate")
+
+    return {
+        "why":        why[:4],
+        "watch_for":  watch_for[:3],
+        "risk_flags": risk_flags[:3],
+    }
+
+
 # ── Alert filter ──────────────────────────────────────────────────────────────
 
 def should_alert(
@@ -24,24 +142,24 @@ def should_alert(
     upside_change: float,
     alert_config: Dict[str, Any],
 ) -> bool:
-    """
-    Gate logic for firing an alert.  All five conditions must pass.
+    if regime_score < alert_config["min_regime_score"]:            return False
+    if upside       < alert_config["upside_percentile_threshold"]: return False
+    if risk_score   > alert_config["risk_percentile_max"]:         return False
+    if setup_score  < alert_config["setup_percentile_threshold"]:  return False
+    if upside_change < alert_config["min_upside_change"]:          return False
+    return True
 
-    1. Regime must be at least minimally supportive.
-    2. UpsideScore must clear the threshold.
-    3. RiskScore must be acceptable.
-    4. At least one meaningful setup must be present.
-    5. UpsideScore must have improved vs previous scan.
-    """
-    if regime_score < alert_config["min_regime_score"]:
+
+def is_under20_popper(result: Dict[str, Any]) -> bool:
+    """Separate looser filter for sub-$20 stocks showing momentum."""
+    p = result.get("last_price", 999)
+    if p > 20 or p < 0.50:
         return False
-    if upside < alert_config["upside_percentile_threshold"]:
+    if result["upside"] < 0.45:
         return False
-    if risk_score > alert_config["risk_percentile_max"]:
+    if result["risk"] > 0.75:
         return False
-    if setup_score < alert_config["setup_percentile_threshold"]:
-        return False
-    if upside_change < alert_config["min_upside_change"]:
+    if result["factor_scores"].get("technical", 0) < 0.45:
         return False
     return True
 
@@ -54,18 +172,14 @@ def score_ticker(
     regime_score: float,
     history_store: HistoryStore,
 ) -> Dict[str, Any] | None:
-    """
-    Run all brains for a single ticker.  Returns a result dict or None if invalid.
-    """
-    stock_data  = get_stock_data(ticker, HISTORY_CONFIG["lookback_days"])
+    """Run all brains for a single ticker. Returns a result dict or None if invalid."""
+    stock_data   = get_stock_data(ticker, HISTORY_CONFIG["lookback_days"])
     sector_stats = get_sector_stats(ticker)
 
-    # Validation
     is_valid, issues = validation.validate_data(stock_data)
     if not is_valid:
         return None
 
-    # ── Factor brains ─────────────────────────────────────────────────────────
     raw_tech   = technical.compute_technical_factors(stock_data, history_store)
     tech_score, tech_sub = technical.score_technical_factors(raw_tech, history_store)
 
@@ -81,7 +195,6 @@ def score_ticker(
     raw_risk   = risk.compute_risk_factors(stock_data, history_store)
     risk_score, risk_sub = risk.score_risk_factors(raw_risk, history_store)
 
-    # ── Setups ────────────────────────────────────────────────────────────────
     factor_scores = {
         "technical":   tech_score,
         "fundamental": fund_score,
@@ -89,31 +202,33 @@ def score_ticker(
         "structural":  struct_score,
         "risk":        risk_score,
     }
+
     setups_list, setup_score = setups.detect_setups(
         stock_data, factor_scores, regime_label, history_store
     )
 
-    # ── UpsideScore ───────────────────────────────────────────────────────────
     upside = scoring.compute_upside_score(
         tech_score, fund_score, sent_score, struct_score,
         setup_score, regime_score, history_store,
     )
 
-    # ── Change vs previous run ────────────────────────────────────────────────
-    prev_history = history_store.get_stock_history(ticker, "upside", lookback_days=3)
-    prev_upside  = float(prev_history[-1]) if prev_history else 0.0
+    prev_history  = history_store.get_stock_history(ticker, "upside", lookback_days=3)
+    prev_upside   = float(prev_history[-1]) if prev_history else 0.0
     upside_change = upside - prev_upside
 
-    # ── Persist to history ────────────────────────────────────────────────────
     history_store.update_stock(ticker, date=None, data={
-        "upside":    upside,
-        "risk":      risk_score,
-        "technical": tech_score,
-        "fundamental": fund_score,
-        "sentiment": sent_score,
-        "structural": struct_score,
-        "setup":     setup_score,
+        "upside": upside, "risk": risk_score,
+        "technical": tech_score, "fundamental": fund_score,
+        "sentiment": sent_score, "structural": struct_score,
+        "setup": setup_score,
     })
+
+    last_price = float(stock_data["prices"][-1])
+
+    narrative = build_narrative(
+        ticker, factor_scores, setups_list, risk_score,
+        upside, stock_data, regime_label,
+    )
 
     return {
         "ticker":        ticker,
@@ -131,18 +246,16 @@ def score_ticker(
             "structural":  struct_sub,
             "risk":        risk_sub,
         },
-        "issues":       issues,
-        "sector":       stock_data.get("sector", "Unknown"),
-        "last_price":   float(stock_data["prices"][-1]),
+        "narrative":   narrative,
+        "issues":      issues,
+        "sector":      stock_data.get("sector", "Unknown"),
+        "last_price":  last_price,
     }
 
 
 # ── Main scan ─────────────────────────────────────────────────────────────────
 
 def run_scan(verbose: bool = True) -> List[Dict[str, Any]]:
-    """
-    Full market scan.  Returns the list of alert payloads fired.
-    """
     history_store = HistoryStore()
     today = datetime.date.today()
 
@@ -151,7 +264,6 @@ def run_scan(verbose: bool = True) -> List[Dict[str, Any]]:
         print(f"  Stock Discovery Bot  –  {today.isoformat()}")
         print(f"{'='*55}\n")
 
-    # ── Market context ────────────────────────────────────────────────────────
     index_data = get_index_data()
     regime_label, regime_score = regime.compute_market_context(index_data, history_store)
 
@@ -159,32 +271,22 @@ def run_scan(verbose: bool = True) -> List[Dict[str, Any]]:
         print(f"  Market Regime  : {regime_label}")
         print(f"  Regime Score   : {regime_score:.3f}")
 
-    # ── Universe ──────────────────────────────────────────────────────────────
     tickers = get_universe()
     if verbose:
         print(f"  Universe size  : {len(tickers)} tickers\n")
 
     all_results: List[Dict[str, Any]] = []
-    alerts: List[Dict[str, Any]] = []
+    alerts: List[Dict[str, Any]]      = []
 
     for ticker in tickers:
         result = score_ticker(ticker, regime_label, regime_score, history_store)
         if result is None:
             continue
-
         all_results.append(result)
-
-        if should_alert(
-            regime_score,
-            result["upside"],
-            result["risk"],
-            result["setup_score"],
-            result["upside_change"],
-            ALERT_CONFIG,
-        ):
+        if should_alert(regime_score, result["upside"], result["risk"],
+                        result["setup_score"], result["upside_change"], ALERT_CONFIG):
             alerts.append(result)
 
-    # ── Rank and dispatch alerts ───────────────────────────────────────────────
     alerts.sort(key=lambda x: x["upside"], reverse=True)
 
     if verbose:
@@ -194,12 +296,10 @@ def run_scan(verbose: bool = True) -> List[Dict[str, Any]]:
     for a in alerts:
         send_alert(a)
 
-    # ── Summary table (verbose) ───────────────────────────────────────────────
     if verbose and not alerts:
         print("  No tickers met all alert thresholds this scan.")
-        print("  Top 5 by UpsideScore:\n")
         top5 = sorted(all_results, key=lambda x: x["upside"], reverse=True)[:5]
-        print(f"  {'Ticker':<8} {'Upside':>7} {'Risk':>6} {'Setups'}")
+        print(f"\n  {'Ticker':<8} {'Upside':>7} {'Risk':>6}  Setups")
         print("  " + "-" * 45)
         for r in top5:
             s = ", ".join(r["setups"]) if r["setups"] else "—"

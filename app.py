@@ -194,3 +194,51 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     logger.info("Starting Flask server on port %d", port)
     app.run(host="0.0.0.0", port=port, debug=False)
+
+
+@app.route("/api/options/<ticker>")
+def api_options(ticker: str):
+    """Return options chain summary for a single ticker."""
+    import yfinance as yf
+    import numpy as np
+    try:
+        t = yf.Ticker(ticker.upper())
+        exps = t.options
+        if not exps:
+            return jsonify({"error": "No options data available"}), 404
+
+        # Use nearest 3 expirations
+        rows = []
+        for exp in exps[:3]:
+            chain = t.option_chain(exp)
+            calls = chain.calls
+            puts  = chain.puts
+
+            call_vol = int(calls["volume"].fillna(0).sum())
+            put_vol  = int(puts["volume"].fillna(0).sum())
+            call_oi  = int(calls["openInterest"].fillna(0).sum())
+            put_oi   = int(puts["openInterest"].fillna(0).sum())
+            avg_iv   = float(calls["impliedVolatility"].replace([np.inf], np.nan).dropna().mean() * 100) if len(calls) else 0
+
+            # Top calls by volume
+            top_calls = calls.nlargest(3, "volume")[["strike","lastPrice","volume","openInterest","impliedVolatility"]].fillna(0)
+            top_puts  = puts.nlargest(3, "volume")[["strike","lastPrice","volume","openInterest","impliedVolatility"]].fillna(0)
+
+            rows.append({
+                "expiry":    exp,
+                "call_vol":  call_vol,
+                "put_vol":   put_vol,
+                "call_oi":   call_oi,
+                "put_oi":    put_oi,
+                "cpr":       round(call_vol / max(put_vol, 1), 2),
+                "avg_iv":    round(avg_iv, 1),
+                "unusual":   bool(call_vol > put_vol * 2),
+                "top_calls": top_calls.to_dict("records"),
+                "top_puts":  top_puts.to_dict("records"),
+            })
+
+        price = float(t.history(period="1d")["Close"].iloc[-1]) if len(t.history(period="1d")) else 0
+
+        return jsonify({"ticker": ticker.upper(), "price": price, "expirations": rows})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

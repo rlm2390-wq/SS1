@@ -172,7 +172,7 @@ def get_recent_drops(
     lookback_days: int = DROP_LOOKBACK_DAYS,
 ) -> list[str]:
     """
-    Scan the first 100 tickers in *base_tickers* for those that have fallen
+    Scan the first 50 tickers in *base_tickers* for those that have fallen
     *drop_threshold* (e.g. 0.10 = 10%) or more over the last *lookback_days*.
     Results are cached for 30 minutes.
     """
@@ -189,7 +189,7 @@ def get_recent_drops(
 
     drops: list[dict] = []
 
-    for ticker in base_tickers[:100]:  # cap at 100 to respect rate limits
+    for ticker in base_tickers[:50]:  # cap at 50 to respect rate limits
         try:
             hist = yf.Ticker(ticker).history(period=f"{lookback_days}d", timeout=5)
             if len(hist) >= 2:

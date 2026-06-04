@@ -511,7 +511,7 @@
 <script>
 const REGIME_COLORS={risk_on_strong:'#00ff88',risk_on:'#00ff88',choppy:'#ffb800',risk_off:'#ff8040',panic:'#ff4060',unknown:'#3a4a5a'};
 const $=id=>document.getElementById(id);
-let _apiErrors=0,_nextScanTime=null,_prevAlertTickers='',_allResults=[],_page=0;
+let _apiErrors=0,_nextScanTime=null,_prevAlertTickers='',_prevUnder20=[],_allResults=[],_page=0;
 const PAGE_SIZE=50;
 
 
@@ -901,10 +901,14 @@ async function fetchResults(){
 
     const u20=data.under20||[];
     $('under20Count').textContent=u20.length;
-    if(u20.length){
-      $('under20Grid').innerHTML=u20.map((r,i)=>renderUnder20(r,i)).join('');
-    } else if(!data.is_scanning&&data.total>0){
-      $('under20Grid').innerHTML=`<div class="empty" style="padding:28px"><div class="empty-text">No sub-$20 movers found this scan.</div></div>`;
+    const under20Json=JSON.stringify(u20);
+    if(under20Json!==JSON.stringify(_prevUnder20)){
+      if(u20.length){
+        $('under20Grid').innerHTML=u20.map((r,i)=>renderUnder20(r,i)).join('');
+      } else if(!data.is_scanning&&data.total>0){
+        $('under20Grid').innerHTML=`<div class="empty" style="padding:28px"><div class="empty-text">No sub-$20 movers found this scan.</div></div>`;
+      }
+      _prevUnder20=u20;
     }
 
     if(!data.is_scanning||top.length>0){

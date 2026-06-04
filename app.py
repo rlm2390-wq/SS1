@@ -19,7 +19,7 @@ from universe import get_universe
 from market_data import get_index_data, get_stock_data, get_sector_stats
 from history import HistoryStore
 import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
-from main import score_ticker, should_alert
+from main import score_ticker, should_alert, is_under20_popper
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -32,22 +32,21 @@ logger = logging.getLogger("app")
 app = Flask(__name__, template_folder=".")
 
 # ── Shared scan state ─────────────────────────────────────────────────────────
-_scan_lock            = threading.Lock()
-_last_results         = []
-_last_alerts          = []
-_last_regime          = {"label": "unknown", "score": 0.0}
-_last_scan_time       = None
-_is_scanning          = False
-_scan_progress        = {"current": 0, "total": 0, "ticker": ""}
-_last_scan_stats      = {"duration_s": None, "tickers_processed": 0, "tickers_skipped": 0}
-_next_scan_time       = None
+_scan_lock       = threading.Lock()
+_last_results    = []
+_last_alerts     = []
+_last_under20    = []
+_last_regime     = {"label": "unknown", "score": 0.0}
+_last_scan_time  = None
+_is_scanning     = False
+_scan_progress   = {"current": 0, "total": 0, "ticker": ""}
+_last_scan_stats = {"duration_s": None, "tickers_processed": 0, "tickers_skipped": 0}
+_next_scan_time  = None
 
-# Full scan of the entire universe every 10 minutes.
-_SCAN_INTERVAL        = 600    # 10 minutes
+_SCAN_INTERVAL = 600  # 10 minutes
 
 
 def schedule_next_scan():
-    """Schedule the next full scan in 10 minutes."""
     global _next_scan_time
     _next_scan_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=_SCAN_INTERVAL)
     logger.info("Next scheduled scan at %s UTC", _next_scan_time.strftime("%Y-%m-%dT%H:%M:%S"))
@@ -57,11 +56,11 @@ def schedule_next_scan():
 
 
 def run_scan_background():
-    global _last_results, _last_alerts, _last_regime, _last_scan_time
+    global _last_results, _last_alerts, _last_under20, _last_regime, _last_scan_time
     global _is_scanning, _scan_progress, _last_scan_stats
 
     with _scan_lock:
-        _is_scanning = True
+        _is_scanning   = True
         _scan_progress = {"current": 0, "total": 0, "ticker": ""}
 
     scan_start = time.monotonic()
@@ -70,7 +69,6 @@ def run_scan_background():
     try:
         history_store = HistoryStore()
 
-        # Market context
         try:
             index_data = get_index_data()
         except Exception as exc:
@@ -80,19 +78,16 @@ def run_scan_background():
         rl, rs = regime.compute_market_context(index_data, history_store)
         logger.info("Market regime: %s (score=%.3f)", rl, rs)
 
-        # Always scan the full universe (S&P 500 + IPOs + drops)
         tickers = get_universe()
         logger.info("Scan universe: %d tickers", len(tickers))
 
         with _scan_lock:
             _scan_progress["total"] = len(tickers)
 
-        results  = []
-        alerts   = []
-        skipped  = 0
+        results, alerts, under20 = [], [], []
+        skipped = 0
 
         for i, ticker in enumerate(tickers):
-            # Skip obviously invalid ticker strings before hitting the API
             if not ticker or not isinstance(ticker, str) or len(ticker) > 10:
                 logger.warning("Skipping invalid ticker: %r", ticker)
                 skipped += 1
@@ -114,22 +109,31 @@ def run_scan_background():
                 continue
 
             results.append(result)
+
             if should_alert(rs, result["upside"], result["risk"],
                             result["setup_score"], result["upside_change"], ALERT_CONFIG):
                 alerts.append(result)
 
+            if is_under20_popper(result):
+                under20.append(result)
+
         results.sort(key=lambda x: x["upside"], reverse=True)
         alerts.sort(key=lambda x: x["upside"], reverse=True)
+        under20.sort(
+            key=lambda x: x["upside"] * x["factor_scores"].get("technical", 0),
+            reverse=True
+        )
 
         scan_duration = round(time.monotonic() - scan_start, 2)
         logger.info(
-            "Scan complete: %d processed, %d skipped, %d alerts, %.1fs",
-            len(results), skipped, len(alerts), scan_duration,
+            "Scan complete: %d processed, %d skipped, %d alerts, %d under20, %.1fs",
+            len(results), skipped, len(alerts), len(under20), scan_duration,
         )
 
         with _scan_lock:
             _last_results    = results
             _last_alerts     = alerts
+            _last_under20    = under20
             _last_regime     = {"label": rl, "score": round(rs, 3)}
             _last_scan_time  = datetime.datetime.utcnow().isoformat() + "Z"
             _last_scan_stats = {
@@ -139,15 +143,14 @@ def run_scan_background():
             }
 
     except Exception as exc:
-        logger.error("Scan failed with unhandled exception: %s", exc, exc_info=True)
+        logger.error("Scan failed: %s", exc, exc_info=True)
     finally:
         with _scan_lock:
             _is_scanning = False
-        # Schedule the next recurring scan regardless of success/failure
         schedule_next_scan()
 
 
-# Run an initial scan on startup, then recurring scans every 10 minutes
+# Run initial scan on startup
 threading.Thread(target=run_scan_background, daemon=True).start()
 
 
@@ -172,28 +175,22 @@ def trigger_scan():
 @app.route("/api/results")
 def api_results():
     with _scan_lock:
-        next_scan_iso = (
-            _next_scan_time.isoformat() + "Z" if _next_scan_time else None
-        )
+        next_scan_iso = _next_scan_time.isoformat() + "Z" if _next_scan_time else None
         return jsonify({
-            "regime":          _last_regime,
-            "scan_time":       _last_scan_time,
-            "next_scan_time":  next_scan_iso,
-            "is_scanning":     _is_scanning,
-            "progress":        dict(_scan_progress),
-            "total":           len(_last_results),
-            "alerts":          _last_alerts[:20],
-            "top":             _last_results,
-            "scan_stats":      dict(_last_scan_stats),
+            "regime":         _last_regime,
+            "scan_time":      _last_scan_time,
+            "next_scan_time": next_scan_iso,
+            "is_scanning":    _is_scanning,
+            "progress":       dict(_scan_progress),
+            "total":          len(_last_results),
+            "alerts":         _last_alerts[:20],
+            "under20":        _last_under20[:20],
+            "top":            _last_results,
+            "scan_stats":     dict(_last_scan_stats),
         })
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%dT%H:%M:%S",
-    )
     port = int(os.environ.get("PORT", 8080))
     logger.info("Starting Flask server on port %d", port)
     app.run(host="0.0.0.0", port=port, debug=False)

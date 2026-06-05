@@ -3,55 +3,63 @@
 # ─────────────────────────────────────────────
 import os
 
-DATA_PROVIDER = "synthetic"   # swap for "alpaca", "polygon", etc.
+DATA_PROVIDER = "yfinance"
 
-# ── Universe / IPO / drop detection ───────────────────────────────────────────
-# Optional: set FINNHUB_API_KEY to enable IPO calendar detection.
-FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
+# ── External API keys ─────────────────────────────────────────────────────────
+FINNHUB_API_KEY    = os.environ.get("FINNHUB_API_KEY",    "")
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID",   "")
+EMAIL_ENABLED      = os.environ.get("EMAIL_ENABLED", "false").lower() == "true"
+EMAIL_SMTP_HOST    = os.environ.get("EMAIL_SMTP_HOST",  "smtp.gmail.com")
+EMAIL_SMTP_PORT    = int(os.environ.get("EMAIL_SMTP_PORT", "587"))
+EMAIL_USERNAME     = os.environ.get("EMAIL_USERNAME",  "")
+EMAIL_PASSWORD     = os.environ.get("EMAIL_PASSWORD",  "")
+EMAIL_TO           = os.environ.get("EMAIL_TO",        "")
 
-# Tickers down this fraction (0.10 = 10%) over DROP_LOOKBACK_DAYS are included
-# in the scan universe as "interesting" candidates.
-DROP_THRESHOLD    = 0.10   # 10%
+# ── Universe ──────────────────────────────────────────────────────────────────
+DROP_THRESHOLD     = 0.10
 DROP_LOOKBACK_DAYS = 5
 
 UNIVERSE_CONFIG = {
-    "min_price": 2.0,
+    "min_price":             2.0,
     "min_avg_dollar_volume": 1_000_000,
-    "include_small_caps": True,
-    "include_micro_caps": False,
-    # Set to None to use synthetic demo tickers
-    "ticker_list": None,
+    "include_small_caps":    True,
+    "include_micro_caps":    False,
+    "ticker_list":           None,
+    # "sp500_full" | "sp500_top100" | "small_caps" | "under20" |
+    # "high_short_interest"  | "watchlist"
+    "mode": "sp500_top100",
 }
 
+# ── Alert thresholds ──────────────────────────────────────────────────────────
 ALERT_CONFIG = {
-    # Upside must be above this absolute value (0–1)
     "upside_percentile_threshold": 0.65,
-    # Risk must be below this
-    "risk_percentile_max": 0.60,
-    # Setup score must be above this
-    "setup_percentile_threshold": 0.55,
-    # Minimum absolute improvement in UpsideScore vs previous run
-    "min_upside_change": 0.05,
-    # Minimum regime score to fire any alert
-    "min_regime_score": 0.40,
+    "risk_percentile_max":         0.60,
+    "setup_percentile_threshold":  0.55,
+    "min_upside_change":           0.05,
+    "min_regime_score":            0.40,
 }
 
+# ── History ───────────────────────────────────────────────────────────────────
 HISTORY_CONFIG = {
-    "lookback_days": 252,
+    "lookback_days":      252,
     "factor_history_days": 60,
     "regime_history_days": 90,
+    "persistence_file":   "history_store.json",
+    "alert_log_file":     "alert_history.jsonl",
+    "max_history_per_key": 90,   # keep last N data points per ticker/key
 }
 
+# ── Notifications ─────────────────────────────────────────────────────────────
 NOTIFICATION_CONFIG = {
-    # Options: "console" | "file" | "telegram" | "email"
-    "channel": "console",
-    "output_file": "alerts.jsonl",
-    # Telegram: set BOT_TOKEN and CHAT_ID env vars if using telegram
-    # Email: set SMTP_* env vars if using email
+    "channel":          "console",
+    "output_file":      "alerts.jsonl",
+    "telegram_enabled": bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID),
+    "email_enabled":    EMAIL_ENABLED,
 }
 
+# ── Scoring ───────────────────────────────────────────────────────────────────
 SCORING_WEIGHTS = {
-    # Static fallback weights (adaptive weighting overrides these)
     "technical":   0.25,
     "fundamental": 0.25,
     "sentiment":   0.15,
@@ -59,7 +67,38 @@ SCORING_WEIGHTS = {
     "setup":       0.10,
     "regime":      0.10,
 }
-
-# Adaptive weighting: rolling window (days) for correlation-based weight updates
-ADAPTIVE_WEIGHT_WINDOW = 30
+ADAPTIVE_WEIGHT_WINDOW  = 30
 ADAPTIVE_WEIGHT_ENABLED = True
+
+# ── Scan / request timing ─────────────────────────────────────────────────────
+SCAN_INTERVAL_SECONDS  = 600
+REQUEST_DELAY_SECONDS  = 0.35
+REQUEST_MAX_RETRIES    = 3
+REQUEST_RETRY_BACKOFF  = 2.0
+
+# ── Position sizing ───────────────────────────────────────────────────────────
+POSITION_SIZING = {
+    "account_size":       25_000,
+    "risk_per_trade_pct":  0.01,
+    "max_position_pct":    0.10,
+}
+
+# ── Price alerts ──────────────────────────────────────────────────────────────
+PRICE_ALERTS_FILE = "price_alerts.json"
+
+# ── Options plays ─────────────────────────────────────────────────────────────
+OPTIONS_CONFIG = {
+    "low_iv_threshold":   30,
+    "high_iv_threshold":  50,
+    "min_days_to_expiry": 14,
+    "max_days_to_expiry": 60,
+    "max_spread_width":   10,
+    "min_open_interest":  100,
+}
+
+# ── Sectors ───────────────────────────────────────────────────────────────────
+SECTOR_LIST = [
+    "Technology", "Healthcare", "Financials", "Consumer Cyclical",
+    "Consumer Defensive", "Energy", "Industrials", "Materials",
+    "Utilities", "Real Estate", "Communication Services",
+]

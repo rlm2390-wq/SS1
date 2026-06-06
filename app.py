@@ -19,7 +19,8 @@ from universe import get_universe
 from market_data import get_index_data, get_stock_data, get_sector_stats
 from history import HistoryStore
 import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
-from main import score_ticker, should_alert, is_under20_popper
+from main import score_ticker, should_alert, is_under20_popper, is_under10_popper
+from under10 import filter_and_rank_under10
 from scoring import get_top2_weights, get_current_weights
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -128,7 +129,7 @@ def run_scan_background():
                             result["setup_score"], result["upside_change"], ALERT_CONFIG):
                 alerts.append(result)
 
-            if is_under20_popper(result):
+            if is_under10_popper(result):
                 under20.append(result)
 
             # Collect pre-signals (1+ signals, tiered by strength)
@@ -138,10 +139,8 @@ def run_scan_background():
 
         results.sort(key=lambda x: x["upside"], reverse=True)
         alerts.sort(key=lambda x: x["upside"], reverse=True)
-        under20.sort(
-            key=lambda x: x["upside"] * x["factor_scores"].get("technical", 0),
-            reverse=True
-        )
+        # Apply full Under $10 gates, scoring, and ranking
+        under20 = filter_and_rank_under10(under20)
         pre_signals_list.sort(
             key=lambda x: (
                 x.get("pre_signals", {}).get("pre_score", 0) *
@@ -212,7 +211,8 @@ def api_results():
             "progress":       dict(_scan_progress),
             "total":          len(_last_results),
             "alerts":         _last_alerts[:20],
-            "under20":        _last_under20[:20],
+            "under10":        _last_under20[:20],
+            "under20":        _last_under20[:20],   # kept for backward compat
             "top":            _last_results,
             "pre_signals":    _last_pre_signals,
             "weight_display": _weight_display,

@@ -306,6 +306,25 @@ tr:hover td{background:rgba(255,255,255,.025)}
 .empty-icon{font-size:28px;margin-bottom:8px}
 .empty-text{font-size:11px;line-height:1.8}
 @media(max-width:768px){header{gap:6px}.header-spacer{display:none}.stats-bar{grid-template-columns:repeat(2,1fr)}.alerts-grid,.plays-grid{grid-template-columns:1fr}.drawer{width:100vw}.pulse-bar{grid-template-columns:repeat(3,1fr)}}
+
+  .u20card.tier-strong::before{background:linear-gradient(90deg,var(--accent),#00c853)}
+  .u20card.tier-medium::before{background:linear-gradient(90deg,var(--warn),#ff8c00)}
+  .tier-strong .u20-ticker{color:var(--accent)}
+  .tier-medium .u20-ticker{color:var(--warn)}
+  .u10-signal-bar{display:flex;align-items:center;gap:6px;margin:4px 0 8px;flex-wrap:wrap}
+  .u10-signal-count{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+  .sig-strong{background:rgba(0,255,136,.15);color:var(--accent);border:1px solid rgba(0,255,136,.3)}
+  .sig-medium{background:rgba(255,184,0,.15);color:var(--warn);border:1px solid rgba(255,184,0,.3)}
+  .u10-signals-list{margin-top:6px;border-top:1px solid var(--border);padding-top:6px;display:none}
+  .u10-signals-list.open{display:block}
+  .u10-signal-item{font-size:10px;color:var(--muted);padding:3px 0 3px 10px;position:relative;line-height:1.5}
+  .u10-signal-item::before{content:'›';position:absolute;left:0;color:var(--accent2)}
+  .u10-expand-btn{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);cursor:pointer;margin-top:6px;padding-top:5px;border-top:1px solid var(--border)}
+  .u10-expand-btn:hover{color:var(--accent2)}
+  .u10-micro-flag{font-size:9px;padding:2px 7px;background:rgba(192,96,255,.12);color:var(--purple);border:1px solid rgba(192,96,255,.3);border-radius:3px;display:inline-block;margin-top:4px}
+  .u10-oi-flag{font-size:9px;padding:2px 7px;background:rgba(0,200,255,.12);color:var(--accent2);border:1px solid rgba(0,200,255,.3);border-radius:3px;display:inline-block;margin-top:4px;margin-left:4px}
+  .u10-score{font-size:10px;color:var(--muted);margin-top:6px}
+  .u10-score span{color:var(--bright);font-weight:700}
 </style>
 </head>
 <body>
@@ -495,10 +514,14 @@ tr:hover td{background:rgba(255,255,255,.025)}
   <div class="sec-hdr" onclick="toggleSection('alerts')"><div class="sec-title">🔔 Top Alerts</div><div class="sec-line"></div><div class="sec-count" id="cntAlerts">0</div><span class="sec-chev" id="chev-alerts">▾</span></div>
   <div class="sec-body" id="body-alerts"><div class="alerts-grid" id="alertsGrid"><div class="empty"><div class="empty-icon">📡</div><div class="empty-text">First scan takes ~60 seconds…</div></div></div></div>
 
-  <div class="sec-hdr" onclick="toggleSection('u20')"><div class="sec-title">⚡ Under $20 — Popping</div><div class="sec-line"></div><div class="sec-count" id="cntU20">0</div><span class="sec-chev" id="chev-u20">▾</span></div>
+  <div class="sec-hdr" onclick="toggleSection('u20')"><div class="sec-title">⚡ Under $10 — High Potential</div><div class="sec-line"></div><div class="sec-count" id="cntU20">0</div><span class="sec-chev" id="chev-u20">▾</span></div>
   <div class="sec-body" id="body-u20">
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Sub-$20 stocks with momentum. Higher risk — size accordingly.</div>
-    <div class="u20-grid" id="u20Grid"><div class="empty" style="padding:24px"><div class="empty-text">No sub-$20 movers found yet.</div></div></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+      Requires 2+ pre-signals + explosive setup + $1M+ daily volume. Sorted by signal strength.
+      <span style="color:var(--accent)">Green = 3+ signals</span> · 
+      <span style="color:var(--warn)">Yellow = 2 signals</span>
+    </div>
+    <div class="u20-grid" id="u20Grid"><div class="empty" style="padding:24px"><div class="empty-text">No Under $10 candidates passed all filters yet.</div></div></div>
   </div>
 
   <div class="sec-hdr" onclick="toggleSection('plays')"><div class="sec-title">🎯 Options Plays</div><div class="sec-line"></div><div class="sec-count" id="cntPlays">0</div><span class="sec-chev" id="chev-plays">▾</span></div>
@@ -805,18 +828,62 @@ function quickWL(ticker,btn){
 }
 
 function renderU20(r,i){
-  const f=r.factor_scores||{},n=r.narrative||{};
-  return`<div class="u20card" style="animation-delay:${i*35}ms" onclick="openTicker('${r.ticker}')">
+  const f   = r.factor_scores||{};
+  const meta= r.under10_meta||{};
+  const ps  = r.pre_signals||{};
+  const tier= meta.tier||'medium';
+  const uid = `u10-${i}`;
+
+  // Tier badge
+  const sigCount = meta.signal_count||0;
+  const sigBadge = `<span class="u10-signal-count ${tier==='strong'?'sig-strong':'sig-medium'}">${sigCount} signal${sigCount!==1?'s':''}</span>`;
+
+  // Setup tags
+  const setupHtml = tags(r.setups,false);
+
+  // Microstructure flag
+  const micro = r.microstructure||{};
+  const microFlag = micro.microstructure_score >= 0.65
+    ? `<span class="u10-micro-flag">⚡ Micro ${(micro.microstructure_score*100).toFixed(0)}%</span>` : '';
+
+  // OI delta flag
+  const oiSignal = (ps.signals||[]).find(s=>s.name==='oi_buildup');
+  const oiFlag = oiSignal
+    ? `<span class="u10-oi-flag">📈 OI Building</span>` : '';
+
+  // Pre-signal descriptions
+  const signalItems = (ps.signals||[]).map(s=>
+    `<div class="u10-signal-item">${s.name.replace(/_/g,' ')}: ${s.description||''}</div>`
+  ).join('');
+
+  const u10score = r.under10_score||0;
+
+  return`<div class="u20card tier-${tier}" style="animation-delay:${i*35}ms">
   <div class="u20-body">
-    <div class="u20-top"><div class="u20-ticker">${r.ticker}</div><div class="u20-price">${fp(r.last_price)}</div></div>
+    <div class="u20-top" onclick="openTicker('${r.ticker}')" style="cursor:pointer">
+      <div class="u20-ticker">${r.ticker}</div>
+      <div class="u20-price">${fp(r.last_price)}</div>
+    </div>
     <div class="u20-sector">${r.sector||'—'}</div>
+    <div class="u10-signal-bar">${sigBadge}${setupHtml}</div>
     <div class="score-row"><div class="score-lbl">Upside</div><div class="score-bw"><div class="score-bf bf-up" style="width:${pct(r.upside)}"></div></div><div class="score-val ${sc(r.upside)}">${fmt(r.upside)}</div></div>
-    <div class="score-row"><div class="score-lbl">Tech</div><div class="score-bw"><div class="score-bf bf-tech" style="width:${pct(f.technical||0)}"></div></div><div class="score-val">${fmt(f.technical||0)}</div></div>
     <div class="score-row"><div class="score-lbl">Risk</div><div class="score-bw"><div class="score-bf bf-risk" style="width:${pct(r.risk)}"></div></div><div class="score-val ${rc(r.risk)}">${fmt(r.risk)}</div></div>
-    <div class="setups-row">${tags(r.setups)}</div>
-    ${(n.why||[]).slice(0,1).map(b=>`<div style="font-size:10px;color:var(--muted);line-height:1.5;padding-top:6px;border-top:1px solid var(--border)">${b}</div>`).join('')}
+    <div class="score-row"><div class="score-lbl">Tech</div><div class="score-bw"><div class="score-bf bf-tech" style="width:${pct(f.technical||0)}"></div></div><div class="score-val">${fmt(f.technical||0)}</div></div>
+    ${microFlag}${oiFlag}
+    <div class="u10-score">Under $10 Score: <span>${fmt(u10score)}</span></div>
+    ${signalItems?`<div class="u10-expand-btn" onclick="toggleU10Signals('${uid}')">▾ Signal details</div>
+    <div class="u10-signals-list" id="${uid}">${signalItems}</div>`:''}
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <div class="abtn" onclick="openTicker('${r.ticker}')" style="flex:1;padding:5px;text-align:center;font-size:9px">🔍 Detail</div>
+      <div class="abtn abtn-wl" onclick="quickWL('${r.ticker}',this)" style="flex:1;padding:5px;text-align:center;font-size:9px">★ Watch</div>
+    </div>
   </div>
 </div>`;
+}
+
+function toggleU10Signals(uid){
+  const el=document.getElementById(uid);
+  if(el)el.classList.toggle('open');
 }
 
 function filterPlays(type){
@@ -1048,7 +1115,7 @@ async function fetchResults(){
       else if(!data.is_scanning&&data.total>0){$('alertsGrid').innerHTML='<div class="empty"><div class="empty-icon">📡</div><div class="empty-text">No tickers passed all alert thresholds.<br>See All Results below.</div></div>';}
       _prevAlertKeys=alertKey;
     }
-    const u20=data.under20||[];$('cntU20').textContent=u20.length;
+    const u20=data.under10||data.under20||[];$('cntU20').textContent=u20.length;
     if(u20.length)$('u20Grid').innerHTML=u20.map((r,i)=>renderU20(r,i)).join('');
     else if(!data.is_scanning&&data.total>0)$('u20Grid').innerHTML='<div class="empty" style="padding:24px"><div class="empty-text">No sub-$20 movers this scan.</div></div>';
     if(!data.is_scanning){try{const pr=await fetch('/api/options/plays');const pd=await pr.json();_allPlays=pd.plays||[];renderPlays();}catch(e){}}

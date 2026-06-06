@@ -13,6 +13,7 @@ from history import HistoryStore
 import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
 from notifier import send_alert
 from pre_signal import compute_pre_signals
+from under10 import is_under10_candidate, filter_and_rank_under10
 from microstructure import compute_microstructure
 from scoring import get_top2_weights
 
@@ -153,18 +154,17 @@ def should_alert(
     return True
 
 
-def is_under20_popper(result: Dict[str, Any]) -> bool:
-    """Separate looser filter for sub-$20 stocks showing momentum."""
-    p = result.get("last_price", 999)
-    if p > 20 or p < 0.50:
-        return False
-    if result["upside"] < 0.45:
-        return False
-    if result["risk"] > 0.75:
-        return False
-    if result["factor_scores"].get("technical", 0) < 0.45:
-        return False
-    return True
+def is_under10_popper(result: Dict[str, Any]) -> bool:
+    """
+    Wrapper around the Under $10 engine for use in app.py scan loop.
+    Full gate logic lives in under10.py.
+    """
+    qualifies, _, _ = is_under10_candidate(result)
+    return qualifies
+
+
+# Keep old name as alias so existing app.py imports don't break during migration
+is_under20_popper = is_under10_popper
 
 
 # ── Per-ticker scoring ────────────────────────────────────────────────────────

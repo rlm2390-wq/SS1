@@ -169,6 +169,37 @@ is_under20_popper = is_under10_popper
 
 # ── Per-ticker scoring ────────────────────────────────────────────────────────
 
+def compute_position_size(
+    price: float,
+    risk_score: float,
+    account_size: float = None,
+    risk_pct: float = None,
+) -> dict:
+    """
+    Suggest position size based on account size and risk score.
+    Pulls defaults from config if not supplied.
+    """
+    from config import POSITION_SIZING
+    account_size = account_size or POSITION_SIZING.get("account_size", 25_000)
+    risk_pct     = risk_pct     or POSITION_SIZING.get("risk_per_trade_pct", 0.01)
+
+    dollar_risk   = account_size * risk_pct
+    # Adjust for stock risk: higher risk score = smaller position
+    adjusted_risk = dollar_risk * (1.0 - risk_score * 0.5)
+    stop_distance = price * 0.07   # assume 7% stop
+    shares        = int(adjusted_risk / max(stop_distance, 0.01))
+    dollar_value  = round(shares * price, 2)
+    pct_of_acct   = round(dollar_value / account_size * 100, 1)
+
+    return {
+        "suggested_shares": shares,
+        "dollar_value":     dollar_value,
+        "pct_of_account":   pct_of_acct,
+        "dollar_at_risk":   round(adjusted_risk, 2),
+        "stop_price":       round(price * 0.93, 2),
+    }
+
+
 def score_ticker(
     ticker: str,
     regime_label: str,

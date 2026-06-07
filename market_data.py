@@ -151,7 +151,13 @@ def get_stock_data(ticker: str, lookback_days: int = 252) -> Dict[str, Any]:
         logger.warning("get_stock_data: yfinance fetch failed for %s: %s — skipping", ticker, e)
         return {}
 
-    if hist.empty or len(hist) < 20:
+    # If 1y returns empty (can happen on weekends/holidays), try shorter period
+    if hist.empty:
+        try:
+            hist = _yf_fetch(t.history, period="6mo")
+        except Exception:
+            return {}
+    if hist.empty or len(hist) < 10:
         return {}
 
     prices  = hist["Close"].values.astype(float)

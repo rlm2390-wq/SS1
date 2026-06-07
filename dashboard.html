@@ -450,6 +450,9 @@ tr:hover td{background:rgba(255,255,255,.025)}
   .ss-val{font-size:16px;font-weight:700;color:var(--bright)}
   .ss-link{font-size:12px;color:var(--accent2);text-decoration:none;margin-left:auto;white-space:nowrap}
   .ss-link:hover{text-decoration:underline}
+
+  .market-closed-banner{display:none;align-items:center;gap:8px;padding:6px 14px;background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.2);border-radius:4px;font-size:12px;color:var(--warn)}
+  .market-closed-banner.visible{display:flex}
 </style>
 </head>
 <body>
@@ -642,6 +645,7 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="regime-dot" id="regDot" style="background:var(--muted)"></div>
     <span id="regLabel">–</span>&nbsp;·&nbsp;<span id="regScore">–</span>
   </div>
+  <div class="market-closed-banner" id="marketStatusBanner">🌙 Market Closed — showing last available data</div>
   <select class="hbtn" id="universeSelect" onchange="changeUniverse(this.value)">
     <option value="sp500_top100">S&P 500 Top 100</option>
     <option value="sp500_full">S&P 500 Full</option>
@@ -1190,6 +1194,23 @@ async function loadAlertHistory(){
 
 
 
+
+// ── Market status banner ──────────────────────────────────────────────────────
+function updateMarketStatus(data){
+  const banner = $('marketStatusBanner');
+  if(!banner) return;
+  // Show banner when outside regular trading hours
+  // Use VIX data as proxy — if index snapshot has data but SPY chg is 0, market likely closed
+  const idx     = data.index_snapshot || {};
+  const isWeekend = [0,6].includes(new Date().getDay());
+  const hour    = new Date().getHours(); // local time rough proxy
+  // Show closed banner if it's weekend or if pre_market alerter says inactive
+  const pmMeta  = data.premarket?.meta || {};
+  const isPreMkt= pmMeta.active;
+  const showBanner = isWeekend || (!isPreMkt && idx.spy_chg === 0 && idx.spy_price > 0);
+  if(banner) banner.classList.toggle('visible', !!showBanner);
+}
+
 // ── Pre-Market Alerter ────────────────────────────────────────────────────────
 function renderPMCard(a){
   const chgPct = (a.change_pct * 100).toFixed(2);
@@ -1494,7 +1515,7 @@ async function fetchResults(){
     $('stTotal').textContent=data.total||0;$('stAlerts').textContent=(data.alerts||[]).length;
     $('stAvg').textContent=top.length?(top.reduce((a,r)=>a+r.upside,0)/top.length).toFixed(3):'—';
     if(data.next_scan_time)_nextScan=new Date(data.next_scan_time);
-    if(data.scan_time){const d=new Date(data.scan_time);const st=data.scan_stats||{};$('stTime').textContent='Last: '+d.toLocaleTimeString();$('scanMeta').textContent=`Last scan: ${d.toLocaleString()} · ${st.processed||0} tickers · ${st.duration_s||0}s · ${st.mode||''}`;}
+    if(data.scan_time){const d=new Date(data.scan_time);const st=data.scan_stats||{};$('stTime').textContent='Last: '+d.toLocaleTimeString();$('scanMeta').textContent=`Last scan: ${d.toLocaleString()} · ${st.processed||0} tickers scored · ${st.duration_s||0}s · ${st.mode||''} · Showing last available data outside market hours`;}
     if(data.universe_mode&&$('universeSelect'))$('universeSelect').value=data.universe_mode;
     const prog=data.progress||{},tot=prog.total||0,cur=prog.current||0;
     if(data.is_scanning&&tot>0){const p=Math.round((cur/tot)*100);$('pbarWrap').classList.add('on');$('pbar').style.width=p+'%';$('plabel').classList.add('on');$('plabel').textContent=`SCANNING ${prog.ticker||''} · ${cur}/${tot}`;}
@@ -1511,12 +1532,14 @@ async function fetchResults(){
     else if(!data.is_scanning&&data.total>0)$('u20Grid').innerHTML='<div class="empty" style="padding:24px"><div class="empty-text">No sub-$20 movers this scan.</div></div>';
     if(!data.is_scanning){try{const pr=await fetch('/api/options/plays');const pd=await pr.json();_allPlays=pd.plays||[];renderPlays();}catch(e){}}
     renderHeatmap(data.sector_scores||{},data.sector_deltas||{});
-    if(!data.is_scanning||top.length>0){_allResults=top;populateSectorDropdown(top);applyFilters();}
+    // Always render results — don't gate on scanning state
+    if(top.length>0){_allResults=top;populateSectorDropdown(top);applyFilters();}
     renderWatchlist();
     if(!$('body-earnings')?.classList.contains('hidden'))loadEarnings();
     if(!$('body-history')?.classList.contains('hidden'))loadAlertHistory();
     renderScanners(data.scanners||{});
     renderSignalSummary(data.signal_summary||{});
+    updateMarketStatus(data);
     renderPremarket({...( data.premarket||{}), is_premarket: data.premarket?.meta?.active||false});
     const btn=$('scanBtn');
     if(data.is_scanning){btn.textContent='⟳ Scanning…';btn.classList.add('scanning');btn.disabled=true;}

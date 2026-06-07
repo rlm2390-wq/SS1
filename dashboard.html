@@ -397,12 +397,106 @@ tr:hover td{background:rgba(255,255,255,.025)}
   .pm-card-setups{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
   .pm-empty{font-size:13px;color:var(--muted);padding:16px 0;text-align:center}
   .pm-idle-msg{font-size:13px;color:var(--muted);padding:24px;text-align:center;grid-column:1/-1}
+
+  /* ── Trade Setup Card ── */
+  .setup-card{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-top:10px}
+  .setup-card-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .setup-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .setup-level{background:rgba(0,0,0,.3);border-radius:5px;padding:8px 10px;text-align:center}
+  .setup-level-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+  .setup-level-val{font-size:16px;font-weight:700}
+  .sv-entry{color:var(--accent2)}.sv-stop{color:var(--danger)}.sv-t1{color:var(--accent)}.sv-t2{color:var(--purple)}.sv-inval{color:var(--warn)}
+  .setup-rr{display:flex;gap:8px;margin-bottom:10px}
+  .rr-badge{flex:1;background:rgba(0,0,0,.3);border-radius:4px;padding:6px;text-align:center;font-size:13px;font-weight:700}
+  .setup-note{font-size:12px;color:var(--muted);line-height:1.7;padding:8px 0;border-top:1px solid var(--border)}
+  .setup-warning{font-size:12px;color:var(--warn);background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.2);border-radius:4px;padding:7px 10px;margin-top:8px}
+  .setup-confidence{display:flex;gap:3px;margin-top:8px;align-items:center}
+  .setup-conf-lbl{font-size:11px;color:var(--muted);margin-right:4px}
+  .conf-star{font-size:14px}
+  .setup-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .setup-meta-tag{font-size:11px;color:var(--muted);padding:2px 8px;border:1px solid var(--border);border-radius:3px}
+  .setup-btn{width:100%;font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:3px;cursor:pointer;transition:all .2s;margin-top:10px}
+  .setup-btn:hover{background:var(--accent2);color:var(--bg)}
+
+  /* ── Position Tracker Drawer ── */
+  .pos-drawer{width:520px}
+  .pos-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+  .pos-sum-cell{background:rgba(0,0,0,.2);border-radius:5px;padding:8px 10px;text-align:center}
+  .pos-sum-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
+  .pos-sum-val{font-size:16px;font-weight:700;color:var(--bright)}
+  .pos-table{width:100%;border-collapse:collapse;font-size:13px}
+  .pos-table th{padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:left;border-bottom:1px solid var(--border)}
+  .pos-table td{padding:8px 10px;border-bottom:1px solid rgba(26,37,48,.4);vertical-align:middle}
+  .pos-table tr:last-child td{border-bottom:none}
+  .pos-row-open{cursor:pointer}
+  .pos-row-open:hover td{background:rgba(255,255,255,.02)}
+  .pos-at-risk td{background:rgba(255,64,96,.04)!important}
+  .pos-hit-t1 td{background:rgba(0,255,136,.04)!important}
+  .pos-add-form{background:rgba(0,0,0,.2);border-radius:6px;padding:14px;margin-top:16px}
+  .pos-add-title{font-size:13px;font-weight:700;color:var(--bright);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+  .pos-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .pos-input{font-family:'Space Mono',monospace;font-size:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:3px;width:100%;outline:none}
+  .pos-input:focus{border-color:var(--accent2)}
+  .pos-input::placeholder{color:var(--muted)}
+  .pos-add-btn{width:100%;font-family:'Space Mono',monospace;font-size:12px;text-transform:uppercase;padding:8px;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:3px;cursor:pointer;transition:all .2s}
+  .pos-add-btn:hover{background:var(--accent);color:var(--bg)}
+  .pos-close-btn{font-size:11px;padding:3px 8px;border:1px solid var(--danger);color:var(--danger);background:transparent;border-radius:3px;cursor:pointer}
+  .pos-close-btn:hover{background:var(--danger);color:#fff}
+
+  /* ── Signal Summary widget ── */
+  .signal-summary-bar{display:flex;align-items:center;gap:16px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:12px;flex-wrap:wrap}
+  .ss-item{text-align:center}
+  .ss-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .ss-val{font-size:16px;font-weight:700;color:var(--bright)}
+  .ss-link{font-size:12px;color:var(--accent2);text-decoration:none;margin-left:auto;white-space:nowrap}
+  .ss-link:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 
 <div class="pbar-wrap" id="pbarWrap"><div class="pbar" id="pbar"></div></div>
 <div class="plabel" id="plabel"></div>
+
+
+<!-- Position Tracker Drawer -->
+<div class="drawer-overlay" id="positionsOverlay" onclick="closeDrawer('positions')"></div>
+<div class="drawer pos-drawer" id="positionsDrawer">
+  <div class="drawer-head">
+    <div class="drawer-ticker" style="font-size:18px">📋 Position Tracker</div>
+    <button class="drawer-close" onclick="closeDrawer('positions')">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="pos-summary-grid" id="posSummary"></div>
+    <div class="d-sec-title">Open Positions</div>
+    <div style="overflow-x:auto">
+      <table class="pos-table">
+        <thead><tr>
+          <th>Ticker</th><th>Entry</th><th>Stop</th><th>T1</th><th>Current</th>
+          <th>P&L</th><th>R</th><th>Setup</th><th></th>
+        </tr></thead>
+        <tbody id="posTableBody">
+          <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No open positions.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pos-add-form">
+      <div class="pos-add-title">+ Log New Position</div>
+      <div class="pos-form-grid">
+        <input class="pos-input" id="posTickerIn"  placeholder="Ticker"       type="text">
+        <input class="pos-input" id="posEntryIn"   placeholder="Entry price"  type="number" step="0.01">
+        <input class="pos-input" id="posStopIn"    placeholder="Stop price"   type="number" step="0.01">
+        <input class="pos-input" id="posT1In"      placeholder="Target 1"     type="number" step="0.01">
+        <input class="pos-input" id="posT2In"      placeholder="Target 2"     type="number" step="0.01">
+        <input class="pos-input" id="posSharesIn"  placeholder="Shares"       type="number">
+        <input class="pos-input" id="posSetupIn"   placeholder="Setup type"   type="text">
+        <input class="pos-input" id="posNotesIn"   placeholder="Notes"        type="text">
+      </div>
+      <button class="pos-add-btn" onclick="submitPosition()">Log Position</button>
+    </div>
+    <div class="d-sec-title" style="margin-top:20px">Closed Positions</div>
+    <div id="closedPosList" style="font-size:13px;color:var(--muted)">None yet.</div>
+  </div>
+</div>
 
 <!-- Ticker Detail Drawer -->
 <div class="drawer-overlay" id="tickerOverlay" onclick="closeDrawer('ticker')"></div>
@@ -558,6 +652,7 @@ tr:hover td{background:rgba(255,255,255,.025)}
   </select>
   <div class="header-spacer"></div>
   <span class="countdown" id="countdown"></span>
+  <button class="hbtn" onclick="openDrawer('positions');loadPositions()">📋 Positions</button>
   <button class="hbtn" onclick="openDrawer('glossary')">📖 Guide</button>
   <button class="hbtn" onclick="openDrawer('settings')">⚙️</button>
   <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
@@ -605,6 +700,13 @@ tr:hover td{background:rgba(255,255,255,.025)}
   <div class="movers-strip" id="moversStrip" style="display:none">
     <span class="movers-label">⚡ Pre/Post Market:</span>
     <div id="moversContent"></div>
+  </div>
+  <div class="signal-summary-bar" id="signalSummaryBar" style="display:none">
+    <div class="ss-item"><div class="ss-lbl">Last 20 Alerts</div><div class="ss-val" id="ssWR">—</div></div>
+    <div class="ss-item"><div class="ss-lbl">Avg 1-Day</div><div class="ss-val" id="ssD1">—</div></div>
+    <div class="ss-item"><div class="ss-lbl">Avg 3-Day</div><div class="ss-val" id="ssD3">—</div></div>
+    <div class="ss-item"><div class="ss-lbl">Total Graded</div><div class="ss-val" id="ssTotal">—</div></div>
+    <a class="ss-link" href="/report" target="_blank">Full Signal Report →</a>
   </div>
   <div class="stats-bar">
     <div class="stat-card"><div class="stat-label">Scanned</div><div class="stat-value" id="stTotal">–</div><div class="stat-sub" id="stTime">–</div></div>
@@ -896,8 +998,10 @@ function renderCard(r,i){
       <div class="abtn" id="btn-${nid}" onclick="togglePanel('${nid}','${oid}',this)">📖 Why</div>
       <div class="abtn abtn-opt" id="btn-${oid}" onclick="toggleOpts('${oid}','${nid}','${r.ticker}',this)">📊 Options</div>
       <div class="abtn abtn-wl ${pinned?'active':''}" onclick="quickWL('${r.ticker}',this)">★ Watchlist</div>
+      <div class="abtn" onclick="event.stopPropagation();openSetupCard('${r.ticker}',this)">📐 Setup</div>
       <div class="abtn" onclick="openTicker('${r.ticker}')">🔍 Detail</div>
     </div>
+    <div class="setup-panel" id="setup-${i}"></div>
     <div class="npanel" id="${nid}">${why}${watch}${risk}</div>
     <div class="opanel" id="${oid}"><div class="opt-loading">Loading…</div></div>
   </div>
@@ -1412,6 +1516,7 @@ async function fetchResults(){
     if(!$('body-earnings')?.classList.contains('hidden'))loadEarnings();
     if(!$('body-history')?.classList.contains('hidden'))loadAlertHistory();
     renderScanners(data.scanners||{});
+    renderSignalSummary(data.signal_summary||{});
     renderPremarket({...( data.premarket||{}), is_premarket: data.premarket?.meta?.active||false});
     const btn=$('scanBtn');
     if(data.is_scanning){btn.textContent='⟳ Scanning…';btn.classList.add('scanning');btn.disabled=true;}
@@ -1422,6 +1527,192 @@ async function fetchResults(){
 async function triggerScan(){
   const mode=$('universeSelect')?.value||'sp500_top100';
   await fetch('/api/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode})}).catch(()=>{});
+}
+
+// ── Trade Setup Card ──────────────────────────────────────────────────────────
+const _setupCache = {};
+
+async function openSetupCard(ticker, btn){
+  const panelId = btn.closest('.acard-body').querySelector('.setup-panel')?.id;
+  // Toggle
+  const allPanels = document.querySelectorAll('.setup-panel');
+  allPanels.forEach(p => { if(p.id !== panelId) p.innerHTML = ''; });
+
+  const panel = btn.closest('.acard-body').querySelector('.setup-panel');
+  if(!panel) return;
+  if(panel.innerHTML && panel.dataset.ticker === ticker){
+    panel.innerHTML = '';
+    return;
+  }
+  panel.dataset.ticker = ticker;
+  panel.innerHTML = '<div style="padding:12px;color:var(--muted);font-size:13px">⟳ Loading setup…</div>';
+
+  try {
+    const res  = await fetch(`/api/setup/${ticker}`);
+    const data = await res.json();
+    if(data.error){ panel.innerHTML = `<div style="padding:10px;color:var(--danger);font-size:12px">${data.error}</div>`; return; }
+    panel.innerHTML = renderSetupCard(data);
+  } catch(e) {
+    panel.innerHTML = `<div style="padding:10px;color:var(--danger);font-size:12px">Failed: ${e.message}</div>`;
+  }
+}
+
+function renderSetupCard(s){
+  const stars = '★'.repeat(s.confidence||0) + '☆'.repeat(5-(s.confidence||0));
+  const warn  = s.regime_warning
+    ? `<div class="setup-warning">⚠ ${s.regime_warning}</div>` : '';
+  return `<div class="setup-card">
+    <div class="setup-card-title">📐 Trade Setup — ${s.ticker}
+      <span style="font-size:11px;color:var(--muted);font-weight:400;text-transform:none">@ ${fp(s.last_price)} · ATR ${fp(s.atr14)} (${s.atr_pct}%)</span>
+    </div>
+    <div class="setup-levels">
+      <div class="setup-level"><div class="setup-level-lbl">Entry Zone</div><div class="setup-level-val sv-entry">${fp(s.entry_low)}–${fp(s.entry_high)}</div></div>
+      <div class="setup-level"><div class="setup-level-lbl">Stop Loss</div><div class="setup-level-val sv-stop">${fp(s.stop)}</div></div>
+      <div class="setup-level"><div class="setup-level-lbl">Invalidation</div><div class="setup-level-val sv-inval">${fp(s.invalidation)}</div></div>
+      <div class="setup-level"><div class="setup-level-lbl">Target 1 (2R)</div><div class="setup-level-val sv-t1">${fp(s.target1)}</div></div>
+      <div class="setup-level"><div class="setup-level-lbl">Target 2 (3R)</div><div class="setup-level-val sv-t2">${fp(s.target2)}</div></div>
+      <div class="setup-level"><div class="setup-level-lbl">Risk/Share</div><div class="setup-level-val sv-stop">${fp(s.risk_per_share)}</div></div>
+    </div>
+    <div class="setup-rr">
+      <div class="rr-badge" style="color:var(--accent)">2R: +${fp(s.reward1)} (${s.rr1}:1)</div>
+      <div class="rr-badge" style="color:var(--purple)">3R: +${fp(s.reward2)} (${s.rr2}:1)</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;font-size:13px">
+      <span style="color:var(--muted)">Size:</span>
+      <strong style="color:var(--bright)">${s.suggested_shares} shares</strong>
+      <span style="color:var(--muted)">·</span>
+      <strong style="color:var(--accent2)">${fp(s.dollar_value)} deployed</strong>
+      <span style="color:var(--muted)">·</span>
+      <strong style="color:var(--danger)">${fp(s.dollar_risk)} at risk</strong>
+      <span style="color:var(--muted)">· ${s.regime_size_pct}% of normal size (${s.regime} regime)</span>
+    </div>
+    <div class="setup-note">${s.setup_notes}</div>
+    ${warn}
+    <div class="setup-confidence">
+      <span class="setup-conf-lbl">Confidence:</span>
+      ${Array.from({length:5},(_,i)=>`<span class="conf-star" style="color:${i<(s.confidence||0)?'var(--warn)':'var(--border)'}">${i<(s.confidence||0)?'★':'☆'}</span>`).join('')}
+    </div>
+    <div class="setup-meta">
+      <span class="setup-meta-tag">Entry: ${s.entry_type}</span>
+      <span class="setup-meta-tag">Stop: ${s.stop_type}</span>
+      <span class="setup-meta-tag">Targets: ${s.target_type}</span>
+    </div>
+    <button class="setup-btn" onclick="prefillPosition('${s.ticker}',${s.entry_mid},${s.stop},${s.target1},${s.target2},${s.suggested_shares},'${s.primary_setup||''}')">
+      + Log This Trade
+    </button>
+  </div>`;
+}
+
+function prefillPosition(ticker,entry,stop,t1,t2,shares,setup){
+  openDrawer('positions');
+  loadPositions();
+  setTimeout(()=>{
+    if($('posTickerIn'))  $('posTickerIn').value  = ticker;
+    if($('posEntryIn'))   $('posEntryIn').value   = entry;
+    if($('posStopIn'))    $('posStopIn').value     = stop;
+    if($('posT1In'))      $('posT1In').value       = t1;
+    if($('posT2In'))      $('posT2In').value       = t2;
+    if($('posSharesIn'))  $('posSharesIn').value   = shares;
+    if($('posSetupIn'))   $('posSetupIn').value    = setup;
+  }, 200);
+}
+
+
+// ── Position Tracker ──────────────────────────────────────────────────────────
+async function loadPositions(){
+  try {
+    const res  = await fetch('/api/positions');
+    const data = await res.json();
+    renderPositions(data.positions||[], data.summary||{});
+  } catch(e){ console.error('Positions load failed', e); }
+}
+
+function renderPositions(positions, summary){
+  // Summary
+  const s = summary;
+  $('posSummary').innerHTML = [
+    {l:'Open',    v: s.open_count||0,                      c:'var(--bright)'},
+    {l:'At Risk', v: s.at_risk_count||0,                   c: s.at_risk_count ? 'var(--danger)' : 'var(--muted)'},
+    {l:'Unrealized P&L', v: fp(s.unrealized_pnl||0),      c:(s.unrealized_pnl||0)>=0?'var(--accent)':'var(--danger)'},
+    {l:'Win Rate',v: s.win_rate != null ? s.win_rate+'%' : '—', c:'var(--bright)'},
+    {l:'At T1',   v: s.hit_t1_count||0,                   c:'var(--accent)'},
+    {l:'Total Risk', v: fp(s.total_risk||0),               c:'var(--warn)'},
+  ].map(c=>`<div class="pos-sum-cell"><div class="pos-sum-lbl">${c.l}</div><div class="pos-sum-val" style="color:${c.c}">${c.v}</div></div>`).join('');
+
+  // Open positions table
+  const open = positions.filter(p=>p.status==='open');
+  $('posTableBody').innerHTML = open.length ? open.map(p=>{
+    const pnlC   = (p.pnl_total||0)>=0?'var(--accent)':'var(--danger)';
+    const rowCls = p.at_risk?'pos-at-risk':p.hit_t1?'pos-hit-t1':'pos-row-open';
+    const flag   = p.at_risk?'⚠️':p.hit_t2?'🎯🎯':p.hit_t1?'🎯':'';
+    return `<tr class="${rowCls}">
+      <td class="td-tk" onclick="openTicker('${p.ticker}')">${p.ticker}</td>
+      <td>${fp(p.entry)}</td>
+      <td style="color:var(--danger)">${fp(p.stop)}</td>
+      <td style="color:var(--accent)">${fp(p.target1)}</td>
+      <td style="color:var(--accent2)">${fp(p.current_price||0)} ${flag}</td>
+      <td style="color:${pnlC};font-weight:700">${p.pnl_total!=null?(p.pnl_total>=0?'+':'')+fp(p.pnl_total):'—'}</td>
+      <td style="color:${pnlC}">${p.r_multiple!=null?p.r_multiple+'R':'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${p.setup_type||'—'}</td>
+      <td><button class="pos-close-btn" onclick="closePositionPrompt('${p.id}','${p.ticker}',${p.current_price||0})">Close</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No open positions.</td></tr>';
+
+  // Closed positions
+  const closed = positions.filter(p=>p.status==='closed');
+  $('closedPosList').innerHTML = closed.length ? closed.slice(0,20).map(p=>{
+    const pnlC = (p.pnl_total||0)>=0?'var(--accent)':'var(--danger)';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <strong style="width:52px;color:var(--bright)">${p.ticker}</strong>
+      <span style="color:var(--muted);font-size:12px">${p.date_opened} → ${p.exit_date||'—'}</span>
+      <span style="margin-left:auto;color:${pnlC};font-weight:700">${p.pnl_total!=null?(p.pnl_total>=0?'+':'')+fp(p.pnl_total):'—'}</span>
+      <span style="color:${pnlC};font-size:12px">${p.r_multiple!=null?p.r_multiple+'R':'—'}</span>
+    </div>`;
+  }).join('') : '<div style="color:var(--muted);padding:8px 0">None yet.</div>';
+}
+
+async function submitPosition(){
+  const data = {
+    ticker:     $('posTickerIn').value,
+    entry:      parseFloat($('posEntryIn').value||0),
+    stop:       parseFloat($('posStopIn').value||0),
+    target1:    parseFloat($('posT1In').value||0),
+    target2:    parseFloat($('posT2In').value||0),
+    shares:     parseInt($('posSharesIn').value||0),
+    setup_type: $('posSetupIn').value,
+    notes:      $('posNotesIn').value,
+  };
+  if(!data.ticker || !data.entry){ alert('Ticker and entry price are required'); return; }
+  await fetch('/api/positions', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+  ['posTickerIn','posEntryIn','posStopIn','posT1In','posT2In','posSharesIn','posSetupIn','posNotesIn']
+    .forEach(id => { if($(id)) $(id).value = ''; });
+  loadPositions();
+}
+
+function closePositionPrompt(id, ticker, currentPrice){
+  const exit = prompt(`Close ${ticker} position.\nEnter exit price (current: $${currentPrice}):`, currentPrice);
+  if(exit === null) return;
+  fetch(`/api/positions/${id}/close`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({exit_price: parseFloat(exit), reason: 'manual'})
+  }).then(()=>loadPositions());
+}
+
+
+// ── Signal Summary Bar ────────────────────────────────────────────────────────
+function renderSignalSummary(s){
+  if(!s || !s.total_alerts) return;
+  const bar = $('signalSummaryBar');
+  bar.style.display = '';
+  if($('ssWR'))    $('ssWR').textContent    = s.recent_20_wr  != null ? s.recent_20_wr+'% win' : '—';
+  if($('ssD1'))    $('ssD1').textContent    = s.avg_pct_d1    != null ? (s.avg_pct_d1>=0?'+':'')+s.avg_pct_d1+'%' : '—';
+  if($('ssD3'))    $('ssD3').textContent    = s.avg_pct_d3    != null ? (s.avg_pct_d3>=0?'+':'')+s.avg_pct_d3+'%' : '—';
+  if($('ssTotal')) $('ssTotal').textContent = s.graded_alerts || '—';
+  // Color win rate
+  const wr = s.recent_20_wr;
+  if($('ssWR') && wr != null){
+    $('ssWR').style.color = wr >= 60 ? 'var(--accent)' : wr >= 45 ? 'var(--warn)' : 'var(--danger)';
+  }
 }
 
 loadSettings();

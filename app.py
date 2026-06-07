@@ -17,7 +17,7 @@ from flask import Flask, render_template, jsonify
 from config import ALERT_CONFIG, HISTORY_CONFIG
 from universe import get_universe
 from market_data import get_index_data, get_stock_data, get_sector_stats
-from history import HistoryStore
+from history import HistoryStore, get_global_store
 import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
 from main import score_ticker, should_alert, is_under20_popper, is_under10_popper
 from under10 import filter_and_rank_under10
@@ -94,7 +94,7 @@ def run_scan_background():
         logger.info("Quick scan: 100 tickers (cycle %d)", _scan_count)
 
     try:
-        history_store = HistoryStore()
+        history_store = get_global_store()
 
         try:
             index_data = get_index_data()
@@ -168,12 +168,16 @@ def run_scan_background():
             len(results), skipped, len(alerts), len(under20), scan_duration,
         )
 
+        # Persist history store to disk after every scan
+        history_store.save()
+
         with _scan_lock:
             _last_results    = results
             _last_alerts     = alerts
             _last_under20    = under20
             _last_pre_signals = pre_signals_list[:25]
             _last_scanners    = scanner_results
+            _weight_display   = ""
             _last_regime     = {"label": rl, "score": round(rs, 3)}
             _last_scan_time  = datetime.datetime.utcnow().isoformat() + "Z"
             _last_scan_stats = {

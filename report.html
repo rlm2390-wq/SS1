@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockBot — Signal Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080c10;--surface:#0d1318;--surface2:#111c24;--border:#1a2530;--accent:#00ff88;--accent2:#00c8ff;--warn:#ffb800;--danger:#ff4060;--muted:#3a4a5a;--text:#c8dae8;--bright:#eaf4ff;--purple:#c060ff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;font-size:14px;min-height:100vh}
+a{color:var(--accent2);text-decoration:none}
+a:hover{text-decoration:underline}
+.header{padding:14px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;background:rgba(8,12,16,.97)}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--bright)}
+.logo span{color:var(--accent)}
+.back{font-size:12px;color:var(--muted);padding:5px 12px;border:1px solid var(--border);border-radius:3px;cursor:pointer}
+.back:hover{color:var(--text);border-color:var(--border)}
+.page-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--bright)}
+.rebuild-btn{margin-left:auto;font-family:'Space Mono',monospace;font-size:12px;padding:6px 16px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:3px;cursor:pointer;transition:all .2s}
+.rebuild-btn:hover{background:var(--accent2);color:var(--bg)}
+.rebuild-btn:disabled{opacity:.4;cursor:not-allowed}
+.main{max-width:1200px;margin:0 auto;padding:20px 24px}
+.section{margin-bottom:32px}
+.sec-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+/* Summary cards */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:24px}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 16px;text-align:center}
+.sum-lbl{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px}
+.sum-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--bright)}
+.sum-sub{font-size:12px;color:var(--muted);margin-top:4px}
+/* Breakdown tables */
+.bk-table{width:100%;border-collapse:collapse;font-size:13px}
+.bk-table th{padding:9px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:left;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+.bk-table td{padding:9px 12px;border-bottom:1px solid rgba(26,37,48,.4)}
+.bk-table tr:last-child td{border-bottom:none}
+.bk-table tr:hover td{background:rgba(255,255,255,.02)}
+.win-bar-wrap{width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
+.win-bar{height:100%;border-radius:3px}
+/* Alert table */
+.alert-table{width:100%;border-collapse:collapse;font-size:13px}
+.alert-table th{padding:9px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:left;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+.alert-table td{padding:8px 12px;border-bottom:1px solid rgba(26,37,48,.4);white-space:nowrap}
+.grade-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700}
+.grade-strong_win{background:rgba(0,255,136,.15);color:var(--accent);border:1px solid rgba(0,255,136,.3)}
+.grade-win{background:rgba(0,200,100,.1);color:#00c864;border:1px solid rgba(0,200,100,.25)}
+.grade-mixed{background:rgba(255,184,0,.12);color:var(--warn);border:1px solid rgba(255,184,0,.3)}
+.grade-loss{background:rgba(255,64,96,.12);color:var(--danger);border:1px solid rgba(255,64,96,.3)}
+.grade-pending{background:rgba(58,74,90,.2);color:var(--muted);border:1px solid var(--border)}
+.pct-pos{color:var(--accent)}.pct-neg{color:var(--danger)}.pct-na{color:var(--muted)}
+.loading{text-align:center;padding:60px;color:var(--muted);font-size:16px}
+.error{text-align:center;padding:40px;color:var(--danger)}
+.generated{font-size:12px;color:var(--muted);text-align:right;margin-top:8px}
+.empty-note{padding:20px;color:var(--muted);font-size:14px;text-align:center}
+.win-pct{font-weight:700}
+.wr-hi{color:var(--accent)}.wr-mid{color:var(--warn)}.wr-lo{color:var(--danger)}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="/" class="back">← Dashboard</a>
+  <div class="logo">STOCK<span>BOT</span></div>
+  <div class="page-title">Signal Quality Report</div>
+  <button class="rebuild-btn" id="rebuildBtn" onclick="rebuildReport()">⟳ Rebuild Report</button>
+</div>
+<div class="main">
+  <div id="reportContent"><div class="loading">⟳ Loading signal report…</div></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+function fp(p){ return p != null ? '$'+parseFloat(p).toFixed(2) : '—'; }
+function pct(v){ if(v==null) return '<span class="pct-na">—</span>'; const c=v>=0?'pct-pos':'pct-neg'; return `<span class="${c}">${v>=0?'+':''}${v}%</span>`; }
+function wrClass(v){ return v==null?'':v>=60?'wr-hi':v>=45?'wr-mid':'wr-lo'; }
+
+async function loadReport(){
+  try {
+    const res  = await fetch('/api/report');
+    const data = await res.json();
+    renderReport(data);
+  } catch(e){
+    $('reportContent').innerHTML = `<div class="error">Failed to load report: ${e.message}</div>`;
+  }
+}
+
+async function rebuildReport(){
+  const btn = $('rebuildBtn');
+  btn.disabled = true; btn.textContent = '⟳ Rebuilding…';
+  $('reportContent').innerHTML = '<div class="loading">⟳ Fetching historical prices — this takes 1–2 minutes…</div>';
+  try {
+    const res  = await fetch('/api/report?force=true');
+    const data = await res.json();
+    renderReport(data);
+  } catch(e){
+    $('reportContent').innerHTML = `<div class="error">Rebuild failed: ${e.message}</div>`;
+  }
+  btn.disabled = false; btn.textContent = '⟳ Rebuild Report';
+}
+
+function renderReport(data){
+  if(data.error){ $('reportContent').innerHTML = `<div class="error">${data.error}</div>`; return; }
+  const s = data.summary || {};
+  const graded = (data.graded||[]).sort((a,b)=>(b.alert_date||'').localeCompare(a.alert_date||''));
+
+  // Win rate color helper
+  const wrBadge = (v) => v!=null
+    ? `<span class="win-pct ${wrClass(v)}">${v}%</span>`
+    : '<span class="pct-na">—</span>';
+
+  // Summary cards
+  const summaryHtml = `
+    <div class="summary-grid">
+      <div class="sum-card"><div class="sum-lbl">Total Alerts</div><div class="sum-val">${s.total_alerts||0}</div><div class="sum-sub">in history log</div></div>
+      <div class="sum-card"><div class="sum-lbl">Graded</div><div class="sum-val">${s.graded_alerts||0}</div><div class="sum-sub">price data available</div></div>
+      <div class="sum-card"><div class="sum-lbl">1-Day Win Rate</div><div class="sum-val ${wrClass(s.win_rate_d1)}">${s.win_rate_d1!=null?s.win_rate_d1+'%':'—'}</div><div class="sum-sub">≥2% move</div></div>
+      <div class="sum-card"><div class="sum-lbl">3-Day Win Rate</div><div class="sum-val ${wrClass(s.win_rate_d3)}">${s.win_rate_d3!=null?s.win_rate_d3+'%':'—'}</div><div class="sum-sub">≥2% move</div></div>
+      <div class="sum-card"><div class="sum-lbl">5-Day Win Rate</div><div class="sum-val ${wrClass(s.win_rate_d5)}">${s.win_rate_d5!=null?s.win_rate_d5+'%':'—'}</div><div class="sum-sub">≥2% move</div></div>
+      <div class="sum-card"><div class="sum-lbl">Avg 1-Day</div><div class="sum-val" style="font-size:20px">${s.avg_pct_d1!=null?(s.avg_pct_d1>=0?'+':'')+s.avg_pct_d1+'%':'—'}</div><div class="sum-sub">avg return</div></div>
+      <div class="sum-card"><div class="sum-lbl">Avg 3-Day</div><div class="sum-val" style="font-size:20px">${s.avg_pct_d3!=null?(s.avg_pct_d3>=0?'+':'')+s.avg_pct_d3+'%':'—'}</div><div class="sum-sub">avg return</div></div>
+      <div class="sum-card"><div class="sum-lbl">Recent 20</div><div class="sum-val ${wrClass(s.recent_20_wr)}">${s.recent_20_wr!=null?s.recent_20_wr+'%':'—'}</div><div class="sum-sub">${s.recent_20_wins||0}/${s.recent_20_total||0} wins</div></div>
+    </div>`;
+
+  // Setup breakdown
+  const setupRows = Object.entries(s.setup_stats||{}).sort((a,b)=>b[1].total-a[1].total).map(([name,st])=>{
+    const wr = st.win_rate;
+    const barW = Math.round(wr);
+    const barC = wr>=60?'#00ff88':wr>=45?'#ffb800':'#ff4060';
+    return `<tr>
+      <td style="color:var(--bright)">${name.replace(/_/g,' ')}</td>
+      <td>${st.total}</td>
+      <td>${st.wins}</td>
+      <td><span class="win-bar-wrap"><span class="win-bar" style="width:${barW}%;background:${barC}"></span></span><span class="${wrClass(wr)}">${wr}%</span></td>
+    </tr>`;
+  }).join('');
+
+  const sectorRows = Object.entries(s.sector_stats||{}).sort((a,b)=>b[1].total-a[1].total).map(([name,st])=>{
+    const wr = st.win_rate;
+    const barC = wr>=60?'#00ff88':wr>=45?'#ffb800':'#ff4060';
+    return `<tr>
+      <td style="color:var(--bright)">${name}</td>
+      <td>${st.total}</td>
+      <td>${st.wins}</td>
+      <td><span class="win-bar-wrap"><span class="win-bar" style="width:${Math.round(wr)}%;background:${barC}"></span></span><span class="${wrClass(wr)}">${wr}%</span></td>
+    </tr>`;
+  }).join('');
+
+  // Alert history table
+  const alertRows = graded.slice(0,100).map(g => {
+    const gradeCls = `grade-${g.grade||'pending'}`;
+    const gradeLabel = (g.grade||'pending').replace('_',' ');
+    return `<tr>
+      <td style="color:var(--muted);font-size:12px">${g.alert_date||'—'}</td>
+      <td style="font-family:'Syne',sans-serif;font-weight:800;color:var(--bright)">${g.ticker||'—'}</td>
+      <td style="color:var(--muted);font-size:12px">${g.sector||'—'}</td>
+      <td>${fp(g.price)}</td>
+      <td>${pct(g.d1_pct)}</td>
+      <td>${pct(g.d3_pct)}</td>
+      <td>${pct(g.d5_pct)}</td>
+      <td><span class="grade-badge ${gradeCls}">${gradeLabel}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${(g.setups||[]).join(', ')||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const noData = !s.graded_alerts
+    ? '<div class="empty-note">No graded alerts yet. Alerts need at least 1 day of price history to be graded. Check back after the bot has been running for a few days.</div>'
+    : '';
+
+  $('reportContent').innerHTML = `
+    ${summaryHtml}
+    ${noData}
+    ${s.graded_alerts ? `
+    <div class="section">
+      <div class="sec-title">Performance by Setup Type (3-Day Window)</div>
+      ${setupRows ? `<table class="bk-table"><thead><tr><th>Setup</th><th>Total</th><th>Wins</th><th>Win Rate</th></tr></thead><tbody>${setupRows}</tbody></table>` : '<div class="empty-note">No setup data yet.</div>'}
+    </div>
+    <div class="section">
+      <div class="sec-title">Performance by Sector (3-Day Window)</div>
+      ${sectorRows ? `<table class="bk-table"><thead><tr><th>Sector</th><th>Total</th><th>Wins</th><th>Win Rate</th></tr></thead><tbody>${sectorRows}</tbody></table>` : '<div class="empty-note">No sector data yet.</div>'}
+    </div>
+    <div class="section">
+      <div class="sec-title">Alert History (Last 100)</div>
+      <div style="overflow-x:auto">
+        <table class="alert-table">
+          <thead><tr><th>Date</th><th>Ticker</th><th>Sector</th><th>Price</th><th>+1d</th><th>+3d</th><th>+5d</th><th>Grade</th><th>Setups</th></tr></thead>
+          <tbody>${alertRows||'<tr><td colspan="9" class="empty-note">No alerts graded yet.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>` : ''}
+    <div class="generated">Report generated: ${data.generated||'—'} · Win threshold: ≥${data.win_threshold_pct||2}%</div>
+  `;
+}
+
+loadReport();
+</script>
+</body>
+</html>

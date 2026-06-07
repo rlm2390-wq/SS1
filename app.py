@@ -24,6 +24,11 @@ from under10 import filter_and_rank_under10
 from scanners import run_all_scanners
 from scoring import get_top2_weights, get_current_weights
 from pre_market import start_premarket_thread, get_premarket_results, is_premarket, premarket_status
+from trade_setup import compute_trade_setup
+from positions import (get_all_positions, add_position, close_position,
+                        update_position, delete_position,
+                        enrich_with_pnl, get_portfolio_summary)
+from signal_report import build_report, get_mini_summary
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -233,6 +238,7 @@ def api_results():
             "weight_display": _weight_display,
             "scanners":       _last_scanners,
             "premarket":      get_premarket_results(),
+            "signal_summary":  get_mini_summary(),
             "scan_stats":     dict(_last_scan_stats),
         })
 
@@ -260,6 +266,92 @@ def trigger_premarket_scan():
         )
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"status": "started"})
+
+
+
+# ── Trade Setup ───────────────────────────────────────────────────────────────
+
+@app.route("/api/setup/<ticker>")
+def api_trade_setup(ticker: str):
+    """Compute a full trade setup card for a ticker."""
+    from market_data import get_stock_data
+    from config import HISTORY_CONFIG
+    ticker = ticker.upper()
+    with _scan_lock:
+        result = next((r for r in _last_results if r["ticker"] == ticker), None)
+    if not result:
+        return jsonify({"error": "Ticker not in last scan results"}), 404
+    try:
+        stock_data = get_stock_data(ticker, HISTORY_CONFIG["lookback_days"])
+        setup      = compute_trade_setup(result, stock_data)
+        return jsonify(setup)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── Position Tracker ──────────────────────────────────────────────────────────
+
+@app.route("/api/positions", methods=["GET"])
+def api_get_positions():
+    positions = get_all_positions()
+    with _scan_lock:
+        price_map = {r["ticker"]: r.get("last_price", 0) for r in _last_results}
+    enriched  = enrich_with_pnl(positions, price_map)
+    summary   = get_portfolio_summary(enriched)
+    return jsonify({"positions": enriched, "summary": summary})
+
+
+@app.route("/api/positions", methods=["POST"])
+def api_add_position():
+    data = request.get_json(silent=True) or {}
+    try:
+        pos = add_position(data)
+        return jsonify({"position": pos, "status": "added"})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/positions/<pos_id>", methods=["PUT"])
+def api_update_position(pos_id: str):
+    data = request.get_json(silent=True) or {}
+    pos  = update_position(pos_id, data)
+    if pos:
+        return jsonify({"position": pos, "status": "updated"})
+    return jsonify({"error": "Position not found"}), 404
+
+
+@app.route("/api/positions/<pos_id>/close", methods=["POST"])
+def api_close_position(pos_id: str):
+    data       = request.get_json(silent=True) or {}
+    exit_price = float(data.get("exit_price", 0))
+    exit_reason= data.get("reason", "manual")
+    pos        = close_position(pos_id, exit_price, exit_reason)
+    if pos:
+        return jsonify({"position": pos, "status": "closed"})
+    return jsonify({"error": "Position not found or already closed"}), 404
+
+
+@app.route("/api/positions/<pos_id>", methods=["DELETE"])
+def api_delete_position(pos_id: str):
+    ok = delete_position(pos_id)
+    return jsonify({"status": "deleted" if ok else "not_found"})
+
+
+# ── Signal Report ─────────────────────────────────────────────────────────────
+
+@app.route("/report")
+def report_page():
+    return render_template("report.html")
+
+
+@app.route("/api/report")
+def api_report():
+    force = request.args.get("force", "false").lower() == "true"
+    try:
+        data = build_report(force=force)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

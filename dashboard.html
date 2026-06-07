@@ -325,6 +325,49 @@ tr:hover td{background:rgba(255,255,255,.025)}
   .u10-oi-flag{font-size:9px;padding:2px 7px;background:rgba(0,200,255,.12);color:var(--accent2);border:1px solid rgba(0,200,255,.3);border-radius:3px;display:inline-block;margin-top:4px;margin-left:4px}
   .u10-score{font-size:10px;color:var(--muted);margin-top:6px}
   .u10-score span{color:var(--bright);font-weight:700}
+
+  /* ── Discovery Scanners ── */
+  .scanners-wrap{display:flex;flex-direction:column;gap:20px}
+  .scanner-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .scanner-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+  .scanner-hdr:hover .scanner-title{color:var(--accent)}
+  .scanner-icon{font-size:16px;flex-shrink:0}
+  .scanner-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--bright);transition:color .15s;flex:1}
+  .scanner-count{font-size:10px;color:var(--muted);border:1px solid var(--border);padding:1px 8px;border-radius:20px}
+  .scanner-desc{font-size:10px;color:var(--muted);white-space:nowrap}
+  .scanner-chev{font-size:11px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+  .scanner-chev.closed{transform:rotate(-90deg)}
+  .scanner-body{display:block}
+  .scanner-body.hidden{display:none}
+  .scanner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;padding:10px 12px}
+  .scard{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;cursor:pointer;transition:border-color .15s,transform .1s;position:relative;overflow:hidden}
+  .scard:hover{border-color:rgba(0,255,136,.3);transform:translateY(-1px)}
+  .scard::before{content:'';display:block;height:2px;margin:-10px -12px 8px;background:var(--border)}
+  .scard.tier-strong::before{background:linear-gradient(90deg,var(--accent),#00c853)}
+  .scard.tier-medium::before{background:linear-gradient(90deg,var(--warn),#ff8c00)}
+  .scard-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
+  .scard-ticker{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--bright)}
+  .scard-price{font-size:14px;font-weight:700;color:var(--accent)}
+  .scard-sector{font-size:10px;color:var(--muted);margin-bottom:6px}
+  .scard-score-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;position:absolute;top:14px;right:10px}
+  .sb-strong{background:rgba(0,255,136,.12);color:var(--accent);border:1px solid rgba(0,255,136,.3)}
+  .sb-medium{background:rgba(255,184,0,.12);color:var(--warn);border:1px solid rgba(255,184,0,.3)}
+  .scard-tags{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}
+  .scard-meta{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.6}
+  .scard-flag{font-size:9px;padding:1px 6px;border-radius:3px;display:inline-block;margin:2px 2px 0 0}
+  .flag-micro{background:rgba(192,96,255,.1);color:var(--purple);border:1px solid rgba(192,96,255,.25)}
+  .flag-oi{background:rgba(0,200,255,.1);color:var(--accent2);border:1px solid rgba(0,200,255,.25)}
+  .flag-earn{background:rgba(255,184,0,.1);color:var(--warn);border:1px solid rgba(255,184,0,.25)}
+  .flag-sq{background:rgba(255,64,96,.1);color:#ff7090;border:1px solid rgba(255,64,96,.25)}
+
+  /* ── Penny scanner extras ── */
+  .penny-floor{font-size:9px;padding:2px 7px;background:rgba(255,64,96,.1);color:var(--danger);border:1px solid rgba(255,64,96,.3);border-radius:3px;display:inline-block;margin-top:4px}
+  .penny-signals{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.7}
+  .penny-signals strong{color:var(--bright)}
+  .scard.penny-card{border-color:rgba(255,64,96,.25)}
+  .scard.penny-card:hover{border-color:rgba(255,64,96,.6)}
+  .scard.penny-card.tier-strong::before{background:linear-gradient(90deg,var(--danger),#ff8040)}
+  .scard.penny-card.tier-medium::before{background:linear-gradient(90deg,#ff8040,var(--warn))}
 </style>
 </head>
 <body>
@@ -539,6 +582,21 @@ tr:hover td{background:rgba(255,255,255,.025)}
   <div class="sec-body" id="body-heatmap">
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Average UpsideScore by sector. Click to filter results table.</div>
     <div class="heatmap-grid" id="heatmapGrid"><div class="empty" style="padding:24px"><div class="empty-text">Populates after first scan.</div></div></div>
+  </div>
+
+
+  <!-- Discovery Scanners -->
+  <div class="sec-hdr" onclick="toggleSection('scanners')">
+    <div class="sec-title">🔬 Discovery Scanners</div>
+    <div class="sec-line"></div>
+    <div class="sec-count" id="cntScanners">0</div>
+    <span class="sec-chev" id="chev-scanners">▾</span>
+  </div>
+  <div class="sec-body" id="body-scanners">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Six specialized signal scanners running on every scan. Each uses its own filter logic and scoring formula.</div>
+    <div class="scanners-wrap" id="scannersWrap">
+      <div class="empty"><div class="empty-icon">🔬</div><div class="empty-text">Scanners populate after first scan.</div></div>
+    </div>
   </div>
 
   <div class="sec-hdr" onclick="toggleSection('earnings')"><div class="sec-title">📅 Earnings Calendar</div><div class="sec-line"></div><div class="sec-count" id="cntEarnings">0</div><span class="sec-chev" id="chev-earnings">▾</span></div>
@@ -967,6 +1025,108 @@ async function loadAlertHistory(){
   }catch(e){console.error('History',e);}
 }
 
+
+// ── Discovery Scanners ────────────────────────────────────────────────────────
+const SCANNER_CONFIG = {
+  under5:         { icon:'💥', title:'Under $5 — High Risk / High Reward',  desc:'3+ signals + explosive setup',     color:'var(--danger)' },
+  low_float:      { icon:'🚀', title:'Low Float Rockets',                   desc:'Float < 20M + squeeze/breakout',   color:'var(--accent)' },
+  short_squeeze:  { icon:'🗜️',  title:'Short Squeeze Watchlist',            desc:'High short interest + vol accel',  color:'#ff7090' },
+  volume_anomaly: { icon:'📊', title:'Volume Anomalies',                    desc:'Volume > 2× avg baseline',         color:'var(--accent2)' },
+  vol_compression:{ icon:'🌀', title:'Volatility Compression',              desc:'BB width bottom 10% — coiled',     color:'var(--purple)' },
+  pre_earnings:   { icon:'📅', title:'Pre-Earnings Momentum',               desc:'Earnings 7–21 days out',           color:'var(--warn)' },
+  penny:          { icon:'🪙', title:'Penny Stocks — High Conviction Only', desc:'$0.50–$2 · 4+ signals · Score ≥ 0.70', color:'var(--danger)' },
+};
+
+function renderScanners(scanners){
+  const wrap = $('scannersWrap');
+  if(!scanners || !Object.keys(scanners).length){
+    wrap.innerHTML='<div class="empty"><div class="empty-icon">🔬</div><div class="empty-text">No scanner results yet.</div></div>';
+    return;
+  }
+  let totalCount = 0;
+  wrap.innerHTML = Object.entries(SCANNER_CONFIG).map(([key, cfg]) => {
+    const items = (scanners[key] || []).slice(0,12);
+    totalCount += items.length;
+    const secId = 'sc-'+key;
+    const cardsHtml = items.length
+      ? items.map((r,i) => renderScannerCard(r, key)).join('')
+      : '<div style="padding:16px 12px;color:var(--muted);font-size:11px">No candidates this scan.</div>';
+    return `<div class="scanner-section">
+      <div class="scanner-hdr" onclick="toggleScannerSection('${secId}')">
+        <span class="scanner-icon">${cfg.icon}</span>
+        <div class="scanner-title" style="color:${cfg.color}">${cfg.title}</div>
+        <div class="scanner-desc">${cfg.desc}</div>
+        <div class="scanner-count">${items.length}</div>
+        <span class="scanner-chev" id="chev-${secId}">▾</span>
+      </div>
+      <div class="scanner-body" id="${secId}">
+        <div class="scanner-grid">${cardsHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+  $('cntScanners').textContent = totalCount;
+}
+
+function toggleScannerSection(id){
+  const body=$(id), chev=$('chev-'+id);
+  if(!body) return;
+  const open = !body.classList.contains('hidden');
+  body.classList.toggle('hidden', open);
+  chev?.classList.toggle('closed', open);
+}
+
+function renderScannerCard(r, scannerKey){
+  const f    = r.factor_scores || {};
+  const meta = r.scanner_meta  || {};
+  const ps   = r.pre_signals   || {};
+  const tier = meta.tier || 'medium';
+  const score= meta.score || 0;
+
+  // Flags
+  const micro = r.microstructure || {};
+  const microFlag = micro.microstructure_score >= 0.65
+    ? `<span class="scard-flag flag-micro">⚡ Micro</span>` : '';
+  const oiFlag = (ps.signals||[]).some(s=>s.name==='oi_buildup')
+    ? `<span class="scard-flag flag-oi">📈 OI</span>` : '';
+  const earnFlag = meta.days_to_earn
+    ? `<span class="scard-flag flag-earn">📅 ${meta.days_to_earn}d</span>` : '';
+  const sqFlag = (r.setups||[]).includes('short_squeeze')
+    ? `<span class="scard-flag flag-sq">🗜️ Squeeze</span>` : '';
+
+  // Setup tags
+  const setupHtml = tags(r.setups, false);
+
+  const isPenny = scannerKey === 'penny';
+  return `<div class="scard tier-${tier}${isPenny?' penny-card':''}" onclick="openTicker('${r.ticker}')">
+    <div class="scard-top">
+      <div>
+        <div class="scard-ticker">${r.ticker}</div>
+        <div class="scard-sector">${r.sector||'—'}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="scard-price">${fp(r.last_price)}</div>
+      </div>
+    </div>
+    <div class="scard-tags">${setupHtml}</div>
+    <div class="score-row" style="margin-bottom:3px">
+      <div class="score-lbl">Upside</div>
+      <div class="score-bw"><div class="score-bf bf-up" style="width:${pct(r.upside||0)}"></div></div>
+      <div class="score-val ${sc(r.upside||0)}">${fmt(r.upside||0)}</div>
+    </div>
+    <div class="score-row" style="margin-bottom:3px">
+      <div class="score-lbl">Risk</div>
+      <div class="score-bw"><div class="score-bf bf-risk" style="width:${pct(r.risk||0)}"></div></div>
+      <div class="score-val ${rc(r.risk||0)}">${fmt(r.risk||0)}</div>
+    </div>
+    <div class="scard-meta">
+      ${meta.signal_count?`${meta.signal_count} signal${meta.signal_count!==1?'s':''}  · `:''}Score: <strong style="color:var(--bright)">${score.toFixed(3)}</strong>
+    </div>
+    <div style="margin-top:4px">${microFlag}${oiFlag}${earnFlag}${sqFlag}</div>
+    ${isPenny && meta.signal_names?.length ? `<div class="penny-signals"><strong>${meta.signal_count} signals:</strong> ${meta.signal_names.join(' · ')}</div>` : ''}
+    ${isPenny ? `<div class="penny-floor">Score: ${score.toFixed(3)} / Floor: 0.700</div>` : ''}
+  </div>`;
+}
+
 const SORT_GETTERS={rank:(r,i)=>i,ticker:r=>r.ticker,sector:r=>r.sector||'',price:r=>r.last_price||0,upside:r=>r.upside,risk:r=>r.risk,tech:r=>r.factor_scores?.technical||0,fund:r=>r.factor_scores?.fundamental||0,sent:r=>r.factor_scores?.sentiment||0,struct:r=>r.factor_scores?.structural||0};
 
 function sortTable(key){
@@ -1124,6 +1284,7 @@ async function fetchResults(){
     renderWatchlist();
     if(!$('body-earnings')?.classList.contains('hidden'))loadEarnings();
     if(!$('body-history')?.classList.contains('hidden'))loadAlertHistory();
+    renderScanners(data.scanners||{});
     const btn=$('scanBtn');
     if(data.is_scanning){btn.textContent='⟳ Scanning…';btn.classList.add('scanning');btn.disabled=true;}
     else{btn.textContent='▶ Scan';btn.classList.remove('scanning');btn.disabled=false;}

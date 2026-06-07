@@ -21,6 +21,7 @@ from history import HistoryStore
 import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
 from main import score_ticker, should_alert, is_under20_popper, is_under10_popper
 from under10 import filter_and_rank_under10
+from scanners import run_all_scanners
 from scoring import get_top2_weights, get_current_weights
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ _last_alerts     = []
 _last_under20    = []
 _last_under20    = []
 _last_pre_signals = []   # tickers with 1+ pre-signals
+_last_scanners    = {}   # six discovery scanners
 _weight_display   = ""   # e.g. "Tech 34% · Fund 28%"
 _last_regime     = {"label": "unknown", "score": 0.0}
 _last_scan_time  = None
@@ -64,7 +66,7 @@ def schedule_next_scan():
 
 def run_scan_background():
     global _last_results, _last_alerts, _last_under20, _last_regime, _last_scan_time
-    global _is_scanning, _scan_progress, _last_scan_stats, _last_pre_signals, _weight_display, _scan_count
+    global _is_scanning, _scan_progress, _last_scan_stats, _last_pre_signals, _weight_display, _scan_count, _last_scanners
 
     with _scan_lock:
         _is_scanning   = True
@@ -141,6 +143,9 @@ def run_scan_background():
         alerts.sort(key=lambda x: x["upside"], reverse=True)
         # Apply full Under $10 gates, scoring, and ranking
         under20 = filter_and_rank_under10(under20)
+
+        # Run all six discovery scanners
+        scanner_results = run_all_scanners(results)
         pre_signals_list.sort(
             key=lambda x: (
                 x.get("pre_signals", {}).get("pre_score", 0) *
@@ -160,6 +165,7 @@ def run_scan_background():
             _last_alerts     = alerts
             _last_under20    = under20
             _last_pre_signals = pre_signals_list[:25]
+            _last_scanners    = scanner_results
             _last_regime     = {"label": rl, "score": round(rs, 3)}
             _last_scan_time  = datetime.datetime.utcnow().isoformat() + "Z"
             _last_scan_stats = {
@@ -216,6 +222,7 @@ def api_results():
             "top":            _last_results,
             "pre_signals":    _last_pre_signals,
             "weight_display": _weight_display,
+            "scanners":       _last_scanners,
             "scan_stats":     dict(_last_scan_stats),
         })
 

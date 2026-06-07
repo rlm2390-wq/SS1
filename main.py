@@ -9,7 +9,7 @@ from typing import Dict, Any, List
 from config import ALERT_CONFIG, HISTORY_CONFIG
 from universe import get_universe
 from market_data import get_index_data, get_stock_data, get_sector_stats
-from history import HistoryStore
+from history import HistoryStore, get_global_store
 import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
 from notifier import send_alert
 from pre_signal import compute_pre_signals
@@ -288,8 +288,8 @@ def score_ticker(
     }
 
 
-def run_scan(verbose: bool = True) -> List[Dict[str, Any]]:
-    history_store = HistoryStore()
+def run_scan(verbose: bool = True, is_first_scan: bool = False) -> List[Dict[str, Any]]:
+    history_store = get_global_store()
     today = datetime.date.today()
 
     if verbose:

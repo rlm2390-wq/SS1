@@ -368,6 +368,35 @@ tr:hover td{background:rgba(255,255,255,.025)}
   .scard.penny-card:hover{border-color:rgba(255,64,96,.6)}
   .scard.penny-card.tier-strong::before{background:linear-gradient(90deg,var(--danger),#ff8040)}
   .scard.penny-card.tier-medium::before{background:linear-gradient(90deg,#ff8040,var(--warn))}
+
+  /* ── Pre-Market Alerter ── */
+  .pm-wrapper{margin-bottom:20px}
+  .pm-status-bar{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px 6px 0 0;border-bottom:none;flex-wrap:wrap}
+  .pm-active-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink .9s ease-in-out infinite;flex-shrink:0}
+  .pm-idle-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+  .pm-status-label{font-size:13px;font-weight:700;color:var(--bright);text-transform:uppercase;letter-spacing:.5px}
+  .pm-status-time{font-size:12px;color:var(--muted)}
+  .pm-manual-btn{font-family:'Space Mono',monospace;font-size:11px;padding:4px 12px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:3px;cursor:pointer;margin-left:auto}
+  .pm-manual-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+  .pm-tiers{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:0 0 6px 6px;overflow:hidden}
+  @media(max-width:768px){.pm-tiers{grid-template-columns:1fr}}
+  .pm-tier{padding:12px 14px;border-right:1px solid var(--border)}
+  .pm-tier:last-child{border-right:none}
+  .pm-tier-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .pm-tier-title .pm-cnt{font-size:11px;color:var(--muted);border:1px solid var(--border);padding:1px 8px;border-radius:20px;font-family:'Space Mono',monospace;font-weight:400}
+  .pm-cards{display:flex;flex-direction:column;gap:6px}
+  .pm-card{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;cursor:pointer;transition:border-color .15s}
+  .pm-card:hover{border-color:rgba(0,255,136,.3)}
+  .pm-card.up{border-left:3px solid var(--accent)}
+  .pm-card.down{border-left:3px solid var(--danger)}
+  .pm-card-ticker{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--bright);min-width:52px}
+  .pm-card-price{font-size:14px;font-weight:700}
+  .pm-card-chg{font-size:14px;font-weight:700;min-width:64px;text-align:right}
+  .pm-card-reason{font-size:12px;color:var(--muted);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pm-card-sector{font-size:11px;color:var(--muted);white-space:nowrap}
+  .pm-card-setups{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
+  .pm-empty{font-size:13px;color:var(--muted);padding:16px 0;text-align:center}
+  .pm-idle-msg{font-size:13px;color:var(--muted);padding:24px;text-align:center;grid-column:1/-1}
 </style>
 </head>
 <body>
@@ -536,6 +565,36 @@ tr:hover td{background:rgba(255,255,255,.025)}
 </header>
 
 <div class="main">
+  <!-- Pre-Market Alerter -->
+  <div class="pm-wrapper" id="pmWrapper" style="display:none">
+    <div class="pm-status-bar">
+      <div class="pm-active-dot" id="pmDot"></div>
+      <span class="pm-status-label" id="pmStatusLabel">Pre-Market</span>
+      <span class="pm-status-time" id="pmStatusTime"></span>
+      <button class="pm-manual-btn" onclick="triggerPremarketScan()">⟳ Scan Now</button>
+    </div>
+    <div class="pm-tiers">
+      <div class="pm-tier">
+        <div class="pm-tier-title" style="color:var(--danger)">
+          🔥 Hot Pre-Market
+          <span class="pm-cnt" id="pmHotCnt">0</span>
+        </div>
+        <div class="pm-cards" id="pmHotCards">
+          <div class="pm-empty">Watchlist + recent alerts appear here.</div>
+        </div>
+      </div>
+      <div class="pm-tier">
+        <div class="pm-tier-title" style="color:var(--accent2)">
+          🌅 Pre-Market Discovery
+          <span class="pm-cnt" id="pmDiscCnt">0</span>
+        </div>
+        <div class="pm-cards" id="pmDiscCards">
+          <div class="pm-empty">Universe discoveries appear here.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="pulse-bar">
     <div class="pulse-card"><div class="pulse-label">SPY</div><div class="pulse-value" id="pSpy">–</div><div class="pulse-chg" id="pSpyChg">–</div></div>
     <div class="pulse-card"><div class="pulse-label">QQQ</div><div class="pulse-value" id="pQqq">–</div><div class="pulse-chg" id="pQqqChg">–</div></div>
@@ -1026,6 +1085,74 @@ async function loadAlertHistory(){
 }
 
 
+
+// ── Pre-Market Alerter ────────────────────────────────────────────────────────
+function renderPMCard(a){
+  const chgPct = (a.change_pct * 100).toFixed(2);
+  const chgStr = (a.change_pct > 0 ? '+' : '') + chgPct + '%';
+  const cls    = a.direction === 'up' ? 'up' : 'down';
+  const clr    = a.direction === 'up' ? 'var(--accent)' : 'var(--danger)';
+  const setH   = (a.setups||[]).length
+    ? `<div class="pm-card-setups">${tags(a.setups,false)}</div>` : '';
+  return `<div class="pm-card ${cls}" onclick="openTicker('${a.ticker}')">
+    <div>
+      <div class="pm-card-ticker">${a.ticker}</div>
+      <div class="pm-card-sector">${a.sector||'—'}</div>
+      ${setH}
+    </div>
+    <div style="flex:1;min-width:0;padding:0 8px">
+      <div class="pm-card-reason">${a.reason||''}</div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div class="pm-card-price" style="color:${clr}">${fp(a.pm_price)}</div>
+      <div class="pm-card-chg"   style="color:${clr}">${chgStr}</div>
+    </div>
+  </div>`;
+}
+
+function renderPremarket(pm){
+  if(!pm) return;
+  const active    = pm.is_premarket || pm.meta?.active;
+  const wrapper   = $('pmWrapper');
+  const dot       = $('pmDot');
+  const statusLbl = $('pmStatusLabel');
+  const statusTm  = $('pmStatusTime');
+
+  // Always show if we have alerts, hide if no alerts and market closed
+  const hasAlerts = (pm.hot?.length||0) + (pm.discovery?.length||0) > 0;
+  wrapper.style.display = (active || hasAlerts) ? '' : 'none';
+
+  dot.className = active ? 'pm-active-dot' : 'pm-idle-dot';
+  statusLbl.textContent = active ? 'Pre-Market Active' : 'Pre-Market';
+  statusTm.textContent  = pm.meta?.et_time || '';
+
+  // Hot tier
+  const hot = pm.hot || [];
+  $('pmHotCnt').textContent = hot.length;
+  $('pmHotCards').innerHTML = hot.length
+    ? hot.map(renderPMCard).join('')
+    : `<div class="pm-empty">${active
+        ? 'No watchlist / recent alert moves yet.'
+        : 'Activates 4:00 AM ET.'}</div>`;
+
+  // Discovery tier
+  const disc = pm.discovery || [];
+  $('pmDiscCnt').textContent = disc.length;
+  $('pmDiscCards').innerHTML = disc.length
+    ? disc.map(renderPMCard).join('')
+    : `<div class="pm-empty">${active
+        ? 'No qualifying discoveries yet.'
+        : 'Activates 4:00 AM ET.'}</div>`;
+}
+
+async function triggerPremarketScan(){
+  await fetch('/api/premarket/scan', {method:'POST'}).catch(()=>{});
+  setTimeout(async () => {
+    const res = await fetch('/api/premarket').catch(()=>null);
+    if(res) { const d = await res.json(); renderPremarket(d); }
+  }, 3000);
+}
+
 // ── Discovery Scanners ────────────────────────────────────────────────────────
 const SCANNER_CONFIG = {
   under5:         { icon:'💥', title:'Under $5 — High Risk / High Reward',  desc:'3+ signals + explosive setup',     color:'var(--danger)' },
@@ -1285,6 +1412,7 @@ async function fetchResults(){
     if(!$('body-earnings')?.classList.contains('hidden'))loadEarnings();
     if(!$('body-history')?.classList.contains('hidden'))loadAlertHistory();
     renderScanners(data.scanners||{});
+    renderPremarket({...( data.premarket||{}), is_premarket: data.premarket?.meta?.active||false});
     const btn=$('scanBtn');
     if(data.is_scanning){btn.textContent='⟳ Scanning…';btn.classList.add('scanning');btn.disabled=true;}
     else{btn.textContent='▶ Scan';btn.classList.remove('scanning');btn.disabled=false;}

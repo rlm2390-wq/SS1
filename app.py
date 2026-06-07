@@ -23,6 +23,7 @@ from main import score_ticker, should_alert, is_under20_popper, is_under10_poppe
 from under10 import filter_and_rank_under10
 from scanners import run_all_scanners
 from scoring import get_top2_weights, get_current_weights
+from pre_market import start_premarket_thread, get_premarket_results, is_premarket, premarket_status
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -43,6 +44,7 @@ _last_under20    = []
 _last_pre_signals = []   # tickers with 1+ pre-signals
 _last_scanners    = {}   # six discovery scanners
 _weight_display   = ""   # e.g. "Tech 34% · Fund 28%"
+_watchlist         = []   # server-side watchlist
 _last_regime     = {"label": "unknown", "score": 0.0}
 _last_scan_time  = None
 _is_scanning     = False
@@ -186,6 +188,13 @@ def run_scan_background():
 # Run initial scan on startup
 threading.Thread(target=run_scan_background, daemon=True).start()
 
+# Start pre-market alerter (runs 4–9:30 AM ET on 5-min cadence)
+start_premarket_thread(
+    get_watchlist_fn     = lambda: list(_watchlist),
+    get_recent_alerts_fn = lambda: [a["ticker"] for a in _last_alerts],
+    get_all_results_fn   = lambda: list(_last_results),
+)
+
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -223,9 +232,34 @@ def api_results():
             "pre_signals":    _last_pre_signals,
             "weight_display": _weight_display,
             "scanners":       _last_scanners,
+            "premarket":      get_premarket_results(),
             "scan_stats":     dict(_last_scan_stats),
         })
 
+
+
+
+@app.route("/api/premarket")
+def api_premarket():
+    """Return current pre-market alert state for both tiers."""
+    data = get_premarket_results()
+    data["is_premarket"] = is_premarket()
+    return jsonify(data)
+
+
+@app.route("/api/premarket/scan", methods=["POST"])
+def trigger_premarket_scan():
+    """Manually trigger a pre-market scan (for testing outside market hours)."""
+    import threading
+    from pre_market import run_premarket_scan
+    def _run():
+        run_premarket_scan(
+            watchlist     = list(_watchlist) if '_watchlist' in dir() else [],
+            recent_alerts = [a["ticker"] for a in _last_alerts],
+            all_results   = list(_last_results),
+        )
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "started"})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

@@ -13,9 +13,9 @@ import logging
 import threading
 import os as _os
 import time
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 
-from config import ALERT_CONFIG, HISTORY_CONFIG
+from config import ALERT_CONFIG, HISTORY_CONFIG, UNIVERSE_CONFIG
 from universe import get_universe
 from market_data import get_index_data, get_stock_data, get_sector_stats
 from history import HistoryStore, get_global_store

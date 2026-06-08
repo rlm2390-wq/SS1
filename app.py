@@ -135,8 +135,9 @@ def run_scan_background():
             results.append(result)
 
             if should_alert(rs, result["upside"], result["risk"],
-                            result["setup_score"], result["upside_change"], ALERT_CONFIG,
-                            is_first_scan=(_scan_count == 1)):
+                            result["setup_score"],
+                            result["upside_change"] if _scan_count > 1 else 999,
+                            ALERT_CONFIG):
                 alerts.append(result)
 
             if is_under10_popper(result):

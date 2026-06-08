@@ -3,6 +3,8 @@
 # ─────────────────────────────────────────────
 import os
 
+DATA_PROVIDER = "yfinance"
+
 # ── External API keys ─────────────────────────────────────────────────────────
 FINNHUB_API_KEY    = os.environ.get("FINNHUB_API_KEY",    "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")

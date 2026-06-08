@@ -163,9 +163,6 @@ def is_under10_popper(result: Dict[str, Any]) -> bool:
     return qualifies
 
 
-# Keep old name as alias so existing app.py imports don't break during migration
-is_under20_popper = is_under10_popper
-
 
 # ── Per-ticker scoring ────────────────────────────────────────────────────────
 

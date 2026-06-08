@@ -481,6 +481,46 @@ tr:hover td{background:rgba(255,255,255,.025)}
   .drag-handle{color:var(--muted);font-size:16px;cursor:grab;padding:0 8px 0 0;flex-shrink:0;user-select:none;line-height:1;opacity:.5;transition:opacity .15s}
   .drag-handle:hover{opacity:1;color:var(--accent)}
   .drag-handle:active{cursor:grabbing}
+
+  /* ── Card visual improvements ── */
+  .acard-ticker{font-size:30px}
+  .acard-price{font-size:22px}
+  .acard-sector{font-size:14px;color:var(--text);opacity:.8}
+  .acard-meta{font-size:13px;color:var(--muted)}
+  .acard-body{padding:16px 18px}
+  .score-lbl{font-size:12px;width:52px}
+  .score-val{font-size:14px;width:44px}
+  .score-bw{height:6px}
+  .stag{font-size:12px;padding:4px 11px}
+  .abtn{font-size:12px;padding:8px 4px}
+  .pos-size{font-size:12px;padding:6px 10px;margin-top:8px}
+  .acard-badges .badge-new,.acard-badges .badge-earn,.acard-badges .badge-pre{font-size:10px;padding:2px 8px}
+
+  /* ── U20 card improvements ── */
+  .u20-ticker{font-size:24px}
+  .u20-price{font-size:22px}
+  .u20-sector{font-size:14px}
+  .u20-body{padding:14px 16px}
+
+  /* ── Stat cards bigger values ── */
+  .stat-value{font-size:36px}
+  .stat-label{font-size:14px;letter-spacing:.2px}
+  .stat-sub{font-size:13px}
+
+  /* ── Pulse cards ── */
+  .pulse-value{font-size:26px}
+  .pulse-label{font-size:13px}
+  .pulse-chg{font-size:14px}
+
+  /* ── Section headers ── */
+  .sec-title{font-size:18px}
+
+  /* ── Pre-market cards ── */
+  .pm-card-ticker{font-size:18px}
+  .pm-card-price{font-size:15px}
+  .pm-card-chg{font-size:15px}
+  .pm-card-reason{font-size:13px}
+  .pm-tier-title{font-size:15px}
 </style>
 </head>
 <body>
@@ -900,7 +940,7 @@ let _data={},_allResults=[],_filteredRes=[],_allPlays=[],_sortKey='upside',_sort
 const PAGE=50;
 let _nextScan=null,_apiErrs=0,_watchlist=JSON.parse(localStorage.getItem('sb_watchlist')||'[]');
 let _currentDrawerTicker=null,_optCache={},_sectorFilter=null,_playsFilter='all';
-let _prevAlertKeys='',_histLoaded=false,_earningsLoaded=false;
+let _prevAlertKeys='',_prevU20Key='',_prevScannerKey='',_prevResultKey='',_histLoaded=false,_earningsLoaded=false;
 let _sectionStates=JSON.parse(localStorage.getItem('sb_sections')||'{}');
 
 function fp(p){return p?'$'+p.toFixed(2):'—'}
@@ -1288,8 +1328,10 @@ function updateMarketStatus(data){
 
 // ── Pre-Market Alerter ────────────────────────────────────────────────────────
 function renderPMCard(a){
-  const chgPct = (a.change_pct * 100).toFixed(2);
-  const chgStr = (a.change_pct > 0 ? '+' : '') + chgPct + '%';
+  const rawPct = a.change_pct * 100;
+  // Sanity cap — yfinance sometimes returns bad pre-market data
+  const chgPct = Math.max(-50, Math.min(50, rawPct)).toFixed(2);
+  const chgStr = (rawPct > 0 ? '+' : '') + chgPct + '%' + (Math.abs(rawPct) > 50 ? ' ⚠' : '');
   const cls    = a.direction === 'up' ? 'up' : 'down';
   const clr    = a.direction === 'up' ? 'var(--accent)' : 'var(--danger)';
   const setH   = (a.setups||[]).length
@@ -1596,23 +1638,40 @@ async function fetchResults(){
     if(data.is_scanning&&tot>0){const p=Math.round((cur/tot)*100);$('pbarWrap').classList.add('on');$('pbar').style.width=p+'%';$('plabel').classList.add('on');$('plabel').textContent=`SCANNING ${prog.ticker||''} · ${cur}/${tot}`;}
     else{$('pbarWrap').classList.remove('on');$('plabel').classList.remove('on');}
     const alerts=data.alerts||[];$('cntAlerts').textContent=alerts.length;
-    const alertKey=alerts.map(a=>a.ticker+a.upside).join(',');
+    const alertKey=alerts.map(a=>a.ticker+'|'+a.upside).join(',');
     if(alertKey!==_prevAlertKeys){
-      if(alerts.length){$('alertsGrid').innerHTML=alerts.map((r,i)=>renderCard(r,i)).join('');alerts.forEach((r,i)=>{if(r.sparkline&&r.sparkline.length){const el=document.getElementById(`spark-${i}`);if(el)renderSparklineD3(el,r.sparkline);}});}
-      else if(!data.is_scanning&&data.total>0){$('alertsGrid').innerHTML='<div class="empty"><div class="empty-icon">📡</div><div class="empty-text">No tickers passed all alert thresholds.<br>See All Results below.</div></div>';}
+      if(alerts.length){
+        $('alertsGrid').innerHTML=alerts.map((r,i)=>renderCard(r,i)).join('');
+        alerts.forEach((r,i)=>{if(r.sparkline&&r.sparkline.length){const el=document.getElementById(`spark-${i}`);if(el)renderSparklineD3(el,r.sparkline);}});
+      } else if(!data.is_scanning&&data.total>0){
+        $('alertsGrid').innerHTML='<div class="empty"><div class="empty-icon">📡</div><div class="empty-text">No tickers passed all alert thresholds.<br>See All Results below.</div></div>';
+      }
       _prevAlertKeys=alertKey;
     }
-    const u20=data.under10||data.under20||[];$('cntU20').textContent=u20.length;
-    if(u20.length)$('u20Grid').innerHTML=u20.map((r,i)=>renderU20(r,i)).join('');
-    else if(!data.is_scanning&&data.total>0)$('u20Grid').innerHTML='<div class="empty" style="padding:24px"><div class="empty-text">No sub-$20 movers this scan.</div></div>';
+    const u20=data.under10||data.under20||[];
+    const u20Key=u20.map(r=>r.ticker+'|'+r.upside).join(',');
+    $('cntU20').textContent=u20.length;
+    if(u20Key!==(_prevU20Key||'')){
+      _prevU20Key=u20Key;
+      if(u20.length) $('u20Grid').innerHTML=u20.map((r,i)=>renderU20(r,i)).join('');
+      else if(!data.is_scanning&&data.total>0) $('u20Grid').innerHTML='<div class="empty" style="padding:24px"><div class="empty-text">No sub-$10 movers this scan.</div></div>';
+    }
     if(!data.is_scanning){try{const pr=await fetch('/api/options/plays');const pd=await pr.json();_allPlays=pd.plays||[];renderPlays();}catch(e){}}
-    renderHeatmap(data.sector_scores||{},data.sector_deltas||{});
-    // Always render results — don't gate on scanning state
-    if(top.length>0){_allResults=top;populateSectorDropdown(top);applyFilters();}
+    const hmKey=JSON.stringify(data.sector_scores||{});
+    if(hmKey!==(_prevHmKey||'')){_prevHmKey=hmKey;renderHeatmap(data.sector_scores||{},data.sector_deltas||{});}
+    // Only re-render results when data actually changes
+    const resultKey=(data.total||0)+'|'+(data.scan_time||'');
+    if(resultKey!==_prevResultKey && top.length>0){
+      _prevResultKey=resultKey;
+      _allResults=top;
+      populateSectorDropdown(top);
+      applyFilters();
+    }
     renderWatchlist();
     if(!$('body-earnings')?.classList.contains('hidden'))loadEarnings();
     if(!$('body-history')?.classList.contains('hidden'))loadAlertHistory();
-    renderScanners(data.scanners||{});
+    const scannerKey=Object.values(data.scanners||{}).map(a=>a.length).join(',');
+    if(scannerKey!==_prevScannerKey){_prevScannerKey=scannerKey;renderScanners(data.scanners||{});}
     renderSignalSummary(data.signal_summary||{});
     updateMarketStatus(data);
     renderPremarket({...( data.premarket||{}), is_premarket: data.premarket?.meta?.active||false});
@@ -1938,7 +1997,7 @@ function renderScanners(scanners){
 
 loadSettings();
 fetchResults();
-setInterval(fetchResults,3000);
+setInterval(fetchResults,8000);
 </script>
 </body>
 </html>

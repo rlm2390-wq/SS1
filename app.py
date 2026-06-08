@@ -27,7 +27,6 @@ from scoring import get_top2_weights, get_current_weights
 from pre_market import start_premarket_thread, get_premarket_results, is_premarket, premarket_status
 from scheduler import start_scheduler_thread
 from dashboard_backend import get_dashboard_state, get_setup_card as db_get_setup_card, log_trade_from_setup
-import cache as _cache_module
 from trade_setup import compute_trade_setup
 from positions import (get_all_positions, add_position, close_position,
                         update_position, delete_position,
@@ -78,17 +77,11 @@ _last_under20    = []
 _last_pre_signals = []   # tickers with 1+ pre-signals
 _last_scanners    = {}   # six discovery scanners
 _last_index_data  = {}   # SPY/QQQ/IWM/VIX/Breadth snapshot
-_last_sector_scores = {}  # sector UpsideScore averages
-_last_sector_deltas = {}  # sector score changes
 _weight_display   = ""   # e.g. "Tech 34% · Fund 28%"
 _watchlist         = []   # server-side watchlist
 _last_regime     = {"label": "unknown", "score": 0.0}
 _last_scan_time  = None
-# ── Scan state machine ────────────────────────────────────────────────────────
-# IDLE → RUNNING → COMPLETE → IDLE
-# Manual scans are queued, never silently dropped.
-_is_scanning      = False
-_scan_queued      = False   # True = a manual scan is waiting for current to finish
+_is_scanning     = False
 _scan_progress   = {"current": 0, "total": 0, "ticker": ""}
 _last_scan_stats = {"duration_s": None, "tickers_processed": 0, "tickers_skipped": 0, "scan_mode": ""}
 _next_scan_time  = None
@@ -108,7 +101,7 @@ def schedule_next_scan():
 
 def run_scan_background():
     global _last_results, _last_alerts, _last_under20, _last_regime, _last_scan_time
-    global _is_scanning, _scan_progress, _last_scan_stats, _last_pre_signals, _weight_display, _scan_count, _last_scanners, _last_index_data, _last_sector_scores, _last_sector_deltas
+    global _is_scanning, _scan_progress, _last_scan_stats, _last_pre_signals, _weight_display, _scan_count, _last_scanners, _last_index_data
 
     with _scan_lock:
         _is_scanning   = True
@@ -244,33 +237,16 @@ def run_scan_background():
             _last_scan_stats = {
                 "duration_s":        scan_duration,
                 "tickers_processed": len(results),
-                "processed":         len(results),
                 "tickers_skipped":   skipped,
-                "mode":              scan_mode,
                 "scan_mode":         scan_mode,
             }
-            # Compute sector scores from results
-            _sec_scores: dict = {}
-            for r in results:
-                sec = r.get("sector") or "Unknown"
-                if sec not in _sec_scores:
-                    _sec_scores[sec] = []
-                _sec_scores[sec].append(r.get("upside", 0))
-            _last_sector_scores = {s: round(sum(v)/len(v), 3) for s, v in _sec_scores.items()}
-            _last_sector_deltas = {}  # delta tracking requires prior scan history
 
     except Exception as exc:
         logger.error("Scan failed: %s", exc, exc_info=True)
     finally:
         with _scan_lock:
-            _is_scanning  = False
-            queued        = _scan_queued
-            _scan_queued  = False
+            _is_scanning = False
         schedule_next_scan()
-        # If a manual scan was queued while we were running, honor it now
-        if queued:
-            logger.info("Running queued manual scan")
-            threading.Thread(target=run_scan_background, daemon=True).start()
 
 
 # ── Single-worker startup guard ──────────────────────────────────────────────
@@ -318,17 +294,10 @@ def index():
 
 @app.route("/api/scan", methods=["POST"])
 def trigger_scan():
-    global _scan_queued
-    data = request.get_json(silent=True) or {}
-    mode = data.get("mode")
-    if mode:
-        UNIVERSE_CONFIG["mode"] = mode
-        logger.info("Universe mode set to: %s", mode)
     with _scan_lock:
         if _is_scanning:
-            _scan_queued = True
-            logger.info("Scan running — manual scan queued for after completion")
-            return jsonify({"status": "queued"})
+            logger.info("Scan requested but already running — ignoring")
+            return jsonify({"status": "already_running"})
     logger.info("Manual scan triggered via /api/scan")
     threading.Thread(target=run_scan_background, daemon=True).start()
     return jsonify({"status": "started"})
@@ -356,8 +325,6 @@ def api_results():
             "weight_display": _weight_display,
             "signal_summary": get_mini_summary(),
             "universe_mode":  UNIVERSE_CONFIG.get("mode", "sp500_top100"),
-            "sector_scores":  _last_sector_scores,
-            "sector_deltas":  _last_sector_deltas,
         })
         return jsonify(state)
 
@@ -502,34 +469,6 @@ def api_rt_quotes():
         })
     except Exception as e:
         return jsonify({"quotes": {}, "rt_enabled": False, "error": str(e)})
-
-
-
-@app.route("/api/cache/stats")
-def api_cache_stats():
-    """Cache health check."""
-    return jsonify({
-        "cache": _cache_module.stats(),
-        "data_router": __import__("data_router").status(),
-    })
-
-
-@app.route("/api/cache/invalidate", methods=["POST"])
-def api_cache_invalidate():
-    """Force-invalidate specific cache keys. POST {prefix: "stock_data"} or {key: "universe:sp500_full"}."""
-    data   = request.get_json(silent=True) or {}
-    prefix = data.get("prefix")
-    key    = data.get("key")
-    if prefix:
-        n = _cache_module.invalidate_prefix(prefix)
-        return jsonify({"status": "ok", "removed": n, "prefix": prefix})
-    if key:
-        _cache_module.invalidate(key)
-        return jsonify({"status": "ok", "key": key})
-    # Full universe refresh
-    from universe import get_sp500_tickers
-    get_sp500_tickers(force_refresh=True)
-    return jsonify({"status": "ok", "action": "universe_refreshed"})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

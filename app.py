@@ -78,6 +78,8 @@ _last_under20    = []
 _last_pre_signals = []   # tickers with 1+ pre-signals
 _last_scanners    = {}   # six discovery scanners
 _last_index_data  = {}   # SPY/QQQ/IWM/VIX/Breadth snapshot
+_last_sector_scores = {}  # sector UpsideScore averages
+_last_sector_deltas = {}  # sector score changes
 _weight_display   = ""   # e.g. "Tech 34% · Fund 28%"
 _watchlist         = []   # server-side watchlist
 _last_regime     = {"label": "unknown", "score": 0.0}
@@ -106,7 +108,7 @@ def schedule_next_scan():
 
 def run_scan_background():
     global _last_results, _last_alerts, _last_under20, _last_regime, _last_scan_time
-    global _is_scanning, _scan_progress, _last_scan_stats, _last_pre_signals, _weight_display, _scan_count, _last_scanners, _last_index_data
+    global _is_scanning, _scan_progress, _last_scan_stats, _last_pre_signals, _weight_display, _scan_count, _last_scanners, _last_index_data, _last_sector_scores, _last_sector_deltas
 
     with _scan_lock:
         _is_scanning   = True
@@ -242,9 +244,20 @@ def run_scan_background():
             _last_scan_stats = {
                 "duration_s":        scan_duration,
                 "tickers_processed": len(results),
+                "processed":         len(results),
                 "tickers_skipped":   skipped,
+                "mode":              scan_mode,
                 "scan_mode":         scan_mode,
             }
+            # Compute sector scores from results
+            _sec_scores: dict = {}
+            for r in results:
+                sec = r.get("sector") or "Unknown"
+                if sec not in _sec_scores:
+                    _sec_scores[sec] = []
+                _sec_scores[sec].append(r.get("upside", 0))
+            _last_sector_scores = {s: round(sum(v)/len(v), 3) for s, v in _sec_scores.items()}
+            _last_sector_deltas = {}  # delta tracking requires prior scan history
 
     except Exception as exc:
         logger.error("Scan failed: %s", exc, exc_info=True)
@@ -343,6 +356,8 @@ def api_results():
             "weight_display": _weight_display,
             "signal_summary": get_mini_summary(),
             "universe_mode":  UNIVERSE_CONFIG.get("mode", "sp500_top100"),
+            "sector_scores":  _last_sector_scores,
+            "sector_deltas":  _last_sector_deltas,
         })
         return jsonify(state)
 

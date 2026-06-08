@@ -319,7 +319,7 @@ def score_ticker(
     }
 
 
-def run_scan(verbose: bool = True, is_first_scan: bool = False) -> List[Dict[str, Any]]:
+def run_scan(verbose: bool = True) -> List[Dict[str, Any]]:
     history_store = get_global_store()
     today = datetime.date.today()
 
@@ -348,8 +348,7 @@ def run_scan(verbose: bool = True, is_first_scan: bool = False) -> List[Dict[str
             continue
         all_results.append(result)
         if should_alert(regime_score, result["upside"], result["risk"],
-                        result["setup_score"], result["upside_change"], ALERT_CONFIG,
-                        is_first_scan=is_first_scan):
+                        result["setup_score"], result["upside_change"], ALERT_CONFIG):
             alerts.append(result)
 
     alerts.sort(key=lambda x: x["upside"], reverse=True)

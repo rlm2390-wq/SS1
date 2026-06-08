@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import datetime
 import logging
 import threading
+import os as _os
 import time
 from flask import Flask, render_template, jsonify
 
@@ -19,7 +20,7 @@ from universe import get_universe
 from market_data import get_index_data, get_stock_data, get_sector_stats
 from history import HistoryStore, get_global_store
 import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
-from main import score_ticker, should_alert, is_under20_popper, is_under10_popper
+from main import score_ticker, should_alert, is_under10_popper
 from under10 import filter_and_rank_under10
 from scanners import run_all_scanners
 from scoring import get_top2_weights, get_current_weights
@@ -45,7 +46,6 @@ _scan_lock       = threading.Lock()
 _last_results    = []
 _last_alerts     = []
 _last_under20    = []
-_last_under20    = []
 _last_pre_signals = []   # tickers with 1+ pre-signals
 _last_scanners    = {}   # six discovery scanners
 _weight_display   = ""   # e.g. "Tech 34% · Fund 28%"
@@ -58,7 +58,6 @@ _last_scan_stats = {"duration_s": None, "tickers_processed": 0, "tickers_skipped
 _next_scan_time  = None
 
 _SCAN_INTERVAL       = 600   # 10 minutes (quick scan cadence)
-_QUICK_SCAN_INTERVAL = 600   # 10 min — top-100 tickers only
 _scan_count          = 0     # incremented each cycle; every 6th = full scan
 
 
@@ -178,7 +177,6 @@ def run_scan_background():
             _last_under20    = under20
             _last_pre_signals = pre_signals_list[:25]
             _last_scanners    = scanner_results
-            _weight_display   = ""
             _last_regime     = {"label": rl, "score": round(rs, 3)}
             _last_scan_time  = datetime.datetime.utcnow().isoformat() + "Z"
             _last_scan_stats = {
@@ -196,15 +194,34 @@ def run_scan_background():
         schedule_next_scan()
 
 
-# Run initial scan on startup
-threading.Thread(target=run_scan_background, daemon=True).start()
+# ── Single-worker startup guard ──────────────────────────────────────────────
+# Railway runs 2 gunicorn workers — use an exclusive file lock so only
+# worker 1 starts the background scan and pre-market threads.
+def _try_become_primary_worker():
+    """Return True if this worker wins the startup lock."""
+    import fcntl
+    lock_path = "/tmp/stockbot_primary.lock"
+    try:
+        fh = open(lock_path, "w")
+        fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fh.write(str(_os.getpid()))
+        fh.flush()
+        return True   # we hold the lock — we are the primary worker
+    except (IOError, OSError):
+        return False  # another worker already holds it
 
-# Start pre-market alerter (runs 4–9:30 AM ET on 5-min cadence)
-start_premarket_thread(
-    get_watchlist_fn     = lambda: list(_watchlist),
-    get_recent_alerts_fn = lambda: [a["ticker"] for a in _last_alerts],
-    get_all_results_fn   = lambda: list(_last_results),
-)
+_is_primary = _try_become_primary_worker()
+
+if _is_primary:
+    threading.Thread(target=run_scan_background, daemon=True).start()
+    start_premarket_thread(
+        get_watchlist_fn     = lambda: list(_watchlist),
+        get_recent_alerts_fn = lambda: [a["ticker"] for a in _last_alerts],
+        get_all_results_fn   = lambda: list(_last_results),
+    )
+    logger.info("Primary worker started — scan + pre-market threads launched")
+else:
+    logger.info("Secondary worker started — scan threads skipped")
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -238,7 +255,6 @@ def api_results():
             "total":          len(_last_results),
             "alerts":         _last_alerts[:20],
             "under10":        _last_under20[:20],
-            "under20":        _last_under20[:20],   # kept for backward compat
             "top":            _last_results,
             "pre_signals":    _last_pre_signals,
             "weight_display": _weight_display,
@@ -262,7 +278,6 @@ def api_premarket():
 @app.route("/api/premarket/scan", methods=["POST"])
 def trigger_premarket_scan():
     """Manually trigger a pre-market scan (for testing outside market hours)."""
-    import threading
     from pre_market import run_premarket_scan
     def _run():
         run_premarket_scan(

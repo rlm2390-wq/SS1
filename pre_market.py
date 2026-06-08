@@ -263,6 +263,8 @@ def run_premarket_scan(
 
     # ── Tier 2: Universe (excluding tier 1) ──────────────────────────────────
     tier1_set     = set(tier1_tickers)
+    if not all_results:
+        logger.warning("PM scan: no main scan results yet — tier 2 empty")
     tier2_tickers = [
         r["ticker"] for r in (all_results or [])
         if r["ticker"] not in tier1_set
@@ -363,8 +365,9 @@ def _tier2_qualifies(result: Dict) -> bool:
     ps = result.get("pre_signals", {})
     return (
         ps.get("signal_count", 0) >= _TIER2_MIN_SIGNALS or
-        bool(set(result.get("setups", [])) & {"short_squeeze", "volatility_breakout"}) or
-        result.get("microstructure", {}).get("microstructure_score", 0) >= 0.68
+        bool(set(result.get("setups", [])) & {"short_squeeze", "volatility_breakout", "trend_pullback", "earnings_drift"}) or
+        result.get("microstructure", {}).get("microstructure_score", 0) >= 0.55 or
+        result.get("upside", 0) >= 0.65
     )
 
 

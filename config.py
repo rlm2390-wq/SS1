@@ -3,8 +3,6 @@
 # ─────────────────────────────────────────────
 import os
 
-DATA_PROVIDER = "yfinance"
-
 # ── External API keys ─────────────────────────────────────────────────────────
 FINNHUB_API_KEY    = os.environ.get("FINNHUB_API_KEY",    "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -33,10 +31,10 @@ UNIVERSE_CONFIG = {
 
 # ── Alert thresholds ──────────────────────────────────────────────────────────
 ALERT_CONFIG = {
-    "upside_percentile_threshold": 0.65,
-    "risk_percentile_max":         0.60,
+    "upside_percentile_threshold": 0.60,
+    "risk_percentile_max":         0.65,
     "setup_percentile_threshold":  0.55,
-    "min_upside_change":           0.05,
+    "min_upside_change":           0.02,
     "min_regime_score":            0.40,
 }
 

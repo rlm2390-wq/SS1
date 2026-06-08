@@ -48,6 +48,7 @@ _last_alerts     = []
 _last_under20    = []
 _last_pre_signals = []   # tickers with 1+ pre-signals
 _last_scanners    = {}   # six discovery scanners
+_last_index_data  = {}   # SPY/QQQ/IWM/VIX/Breadth snapshot
 _weight_display   = ""   # e.g. "Tech 34% · Fund 28%"
 _watchlist         = []   # server-side watchlist
 _last_regime     = {"label": "unknown", "score": 0.0}
@@ -72,7 +73,7 @@ def schedule_next_scan():
 
 def run_scan_background():
     global _last_results, _last_alerts, _last_under20, _last_regime, _last_scan_time
-    global _is_scanning, _scan_progress, _last_scan_stats, _last_pre_signals, _weight_display, _scan_count, _last_scanners
+    global _is_scanning, _scan_progress, _last_scan_stats, _last_pre_signals, _weight_display, _scan_count, _last_scanners, _last_index_data
 
     with _scan_lock:
         _is_scanning   = True
@@ -97,6 +98,8 @@ def run_scan_background():
 
         try:
             index_data = get_index_data()
+            with _scan_lock:
+                _last_index_data = index_data or {}
         except Exception as exc:
             logger.error("Failed to fetch index data: %s", exc, exc_info=True)
             raise
@@ -259,6 +262,7 @@ def api_results():
             "pre_signals":    _last_pre_signals,
             "weight_display": _weight_display,
             "scanners":       _last_scanners,
+            "index_snapshot": _last_index_data,
             "premarket":      get_premarket_results(),
             "signal_summary":  get_mini_summary(),
             "scan_stats":     dict(_last_scan_stats),

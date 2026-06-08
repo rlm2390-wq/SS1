@@ -813,7 +813,7 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="sec-body" id="body-sc-pre_earnings"><div class="scanner-grid" id="grid-sc-pre_earnings"><div class="empty"><div class="empty-text">Populates after first scan.</div></div></div></div>
   </div>
   <div class="sec-wrap" id="wrap-sc-penny" draggable="true">
-    <div class="sec-hdr"><span class="drag-handle">⠿</span><div class="sec-title" onclick="toggleSection('sc-penny')" style="cursor:pointer">🪙 Penny Stocks — High Conviction Only</div><div class="sec-line"></div><div class="sec-count" id="cntSc-penny">0</div><span class="sec-chev" id="chev-sc-penny" onclick="toggleSection('sc-penny')" style="cursor:pointer">▾</span></div>
+    <div class="sec-hdr"><span class="drag-handle">⠿</span><div class="sec-title" onclick="toggleSection('sc-penny')" style="cursor:pointer">💰 Penny Stocks — High Conviction Only</div><div class="sec-line"></div><div class="sec-count" id="cntSc-penny">0</div><span class="sec-chev" id="chev-sc-penny" onclick="toggleSection('sc-penny')" style="cursor:pointer">▾</span></div>
     <div class="sec-body" id="body-sc-penny"><div class="scanner-grid" id="grid-sc-penny"><div class="empty"><div class="empty-text">Populates after first scan.</div></div></div></div>
   </div>
 
@@ -1361,7 +1361,7 @@ const SCANNER_CONFIG = {
   volume_anomaly: { icon:'📊', title:'Volume Anomalies',                    desc:'Volume > 2× avg baseline',         color:'var(--accent2)' },
   vol_compression:{ icon:'🌀', title:'Volatility Compression',              desc:'BB width bottom 10% — coiled',     color:'var(--purple)' },
   pre_earnings:   { icon:'📅', title:'Pre-Earnings Momentum',               desc:'Earnings 7–21 days out',           color:'var(--warn)' },
-  penny:          { icon:'🪙', title:'Penny Stocks — High Conviction Only', desc:'$0.50–$2 · 4+ signals · Score ≥ 0.70', color:'var(--danger)' },
+  penny:          { icon:'💰', title:'Penny Stocks — High Conviction Only', desc:'$0.50–$2 · 4+ signals · Score ≥ 0.70', color:'var(--danger)' },
 };
 
 function renderScanners(scanners){

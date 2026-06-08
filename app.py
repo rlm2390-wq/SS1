@@ -19,7 +19,7 @@ from universe import get_universe
 from market_data import get_index_data, get_stock_data, get_sector_stats
 from history import HistoryStore, get_global_store
 import regime, technical, fundamental, sentiment, structural, risk, setups, scoring, validation
-from main import score_ticker, should_alert, is_under10_popper
+from main import score_ticker, should_alert, is_under20_popper, is_under10_popper
 from under10 import filter_and_rank_under10
 from scanners import run_all_scanners
 from scoring import get_top2_weights, get_current_weights
@@ -45,6 +45,7 @@ _scan_lock       = threading.Lock()
 _last_results    = []
 _last_alerts     = []
 _last_under20    = []
+_last_under20    = []
 _last_pre_signals = []   # tickers with 1+ pre-signals
 _last_scanners    = {}   # six discovery scanners
 _weight_display   = ""   # e.g. "Tech 34% · Fund 28%"
@@ -57,6 +58,7 @@ _last_scan_stats = {"duration_s": None, "tickers_processed": 0, "tickers_skipped
 _next_scan_time  = None
 
 _SCAN_INTERVAL       = 600   # 10 minutes (quick scan cadence)
+_QUICK_SCAN_INTERVAL = 600   # 10 min — top-100 tickers only
 _scan_count          = 0     # incremented each cycle; every 6th = full scan
 
 
@@ -176,6 +178,7 @@ def run_scan_background():
             _last_under20    = under20
             _last_pre_signals = pre_signals_list[:25]
             _last_scanners    = scanner_results
+            _weight_display   = ""
             _last_regime     = {"label": rl, "score": round(rs, 3)}
             _last_scan_time  = datetime.datetime.utcnow().isoformat() + "Z"
             _last_scan_stats = {
@@ -235,6 +238,7 @@ def api_results():
             "total":          len(_last_results),
             "alerts":         _last_alerts[:20],
             "under10":        _last_under20[:20],
+            "under20":        _last_under20[:20],   # kept for backward compat
             "top":            _last_results,
             "pre_signals":    _last_pre_signals,
             "weight_display": _weight_display,
@@ -258,6 +262,7 @@ def api_premarket():
 @app.route("/api/premarket/scan", methods=["POST"])
 def trigger_premarket_scan():
     """Manually trigger a pre-market scan (for testing outside market hours)."""
+    import threading
     from pre_market import run_premarket_scan
     def _run():
         run_premarket_scan(

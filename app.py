@@ -41,6 +41,32 @@ logger = logging.getLogger("app")
 
 app = Flask(__name__, template_folder=".")
 
+import json as _json, math as _math2
+class _SafeEncoder(_json.JSONEncoder):
+    """Converts NaN/Inf to None and numpy types to Python natives globally."""
+    def default(self, obj):
+        try:
+            import numpy as np
+            if isinstance(obj, np.ndarray):  return obj.tolist()
+            if isinstance(obj, np.integer):  return int(obj)
+            if isinstance(obj, np.floating):
+                v = float(obj)
+                return None if (_math2.isnan(v) or _math2.isinf(v)) else v
+            if isinstance(obj, np.bool_):    return bool(obj)
+        except ImportError:
+            pass
+        return super().default(obj)
+    def iterencode(self, o, _one_shot=False):
+        def _fix(v):
+            if isinstance(v, float) and (_math2.isnan(v) or _math2.isinf(v)):
+                return None
+            if isinstance(v, dict):  return {kk: _fix(vv) for kk, vv in v.items()}
+            if isinstance(v, list):  return [_fix(i) for i in v]
+            return v
+        return super().iterencode(_fix(o), _one_shot)
+
+app.json_encoder = _SafeEncoder
+
 # ── Shared scan state ─────────────────────────────────────────────────────────
 _scan_lock       = threading.Lock()
 _last_results    = []
@@ -98,7 +124,8 @@ def run_scan_background():
 
         try:
             index_data = get_index_data()
-            # Sanitize numpy types so index_data is JSON-serializable
+            # Sanitize numpy types and NaN/Inf so index_data is JSON-serializable
+            import math as _math
             def _sanitize(obj):
                 if obj is None: return None
                 if isinstance(obj, dict):
@@ -108,15 +135,18 @@ def run_scan_background():
                 try:
                     import numpy as np
                     if isinstance(obj, np.ndarray):
-                        return obj.tolist()
+                        return [_sanitize(v) for v in obj.tolist()]
                     if isinstance(obj, (np.integer,)):
                         return int(obj)
                     if isinstance(obj, (np.floating,)):
-                        return float(obj)
+                        v = float(obj)
+                        return None if (_math.isnan(v) or _math.isinf(v)) else v
                     if isinstance(obj, (np.bool_,)):
                         return bool(obj)
                 except ImportError:
                     pass
+                if isinstance(obj, float):
+                    return None if (_math.isnan(obj) or _math.isinf(obj)) else obj
                 return obj
             with _scan_lock:
                 _last_index_data = _sanitize(index_data or {})

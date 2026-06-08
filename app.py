@@ -98,8 +98,28 @@ def run_scan_background():
 
         try:
             index_data = get_index_data()
+            # Sanitize numpy types so index_data is JSON-serializable
+            def _sanitize(obj):
+                if obj is None: return None
+                if isinstance(obj, dict):
+                    return {k: _sanitize(v) for k, v in obj.items()}
+                if isinstance(obj, (list, tuple)):
+                    return [_sanitize(v) for v in obj]
+                try:
+                    import numpy as np
+                    if isinstance(obj, np.ndarray):
+                        return obj.tolist()
+                    if isinstance(obj, (np.integer,)):
+                        return int(obj)
+                    if isinstance(obj, (np.floating,)):
+                        return float(obj)
+                    if isinstance(obj, (np.bool_,)):
+                        return bool(obj)
+                except ImportError:
+                    pass
+                return obj
             with _scan_lock:
-                _last_index_data = index_data or {}
+                _last_index_data = _sanitize(index_data or {})
         except Exception as exc:
             logger.error("Failed to fetch index data: %s", exc, exc_info=True)
             raise
@@ -200,8 +220,12 @@ def run_scan_background():
 # ── Single-worker startup guard ──────────────────────────────────────────────
 # Railway runs 2 gunicorn workers — use an exclusive file lock so only
 # worker 1 starts the background scan and pre-market threads.
+# Keep file handle at module level so the lock isn't released by GC
+_primary_lock_fh = None
+
 def _try_become_primary_worker():
     """Return True if this worker wins the startup lock."""
+    global _primary_lock_fh
     import fcntl
     lock_path = "/tmp/stockbot_primary.lock"
     try:
@@ -209,9 +233,10 @@ def _try_become_primary_worker():
         fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
         fh.write(str(_os.getpid()))
         fh.flush()
-        return True   # we hold the lock — we are the primary worker
+        _primary_lock_fh = fh   # keep alive — releasing fh releases lock
+        return True
     except (IOError, OSError):
-        return False  # another worker already holds it
+        return False
 
 _is_primary = _try_become_primary_worker()
 

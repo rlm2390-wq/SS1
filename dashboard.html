@@ -481,9 +481,6 @@ tr:hover td{background:rgba(255,255,255,.025)}
   .drag-handle{color:var(--muted);font-size:16px;cursor:grab;padding:0 8px 0 0;flex-shrink:0;user-select:none;line-height:1;opacity:.5;transition:opacity .15s}
   .drag-handle:hover{opacity:1;color:var(--accent)}
   .drag-handle:active{cursor:grabbing}
-
-  .collapse-all-btn{font-family:'Space Mono',monospace;font-size:12px;padding:5px 14px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:3px;cursor:pointer;transition:all .2s}
-  .collapse-all-btn:hover{border-color:var(--accent2);color:var(--accent2)}
 </style>
 </head>
 <body>
@@ -743,9 +740,6 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="stat-card"><div class="stat-label">Regime Score</div><div class="stat-value" id="stRegScore" style="font-size:16px;margin-top:4px">–</div><div class="stat-sub" id="stRegLabel">–</div></div>
   </div>
 
-  <div style="display:flex;justify-content:flex-end;margin-bottom:8px;gap:8px">
-    <button class="collapse-all-btn" id="collapseAllBtn" onclick="toggleAllSections()">⊟ Collapse All</button>
-  </div>
   <div class="sec-wrap" id="wrap-alerts" draggable="true">
   <div class="sec-hdr" style="cursor:default"><span class="drag-handle">⠿</span>
     <div class="sec-title" onclick="toggleSection('alerts')" style="cursor:pointer">🔔 Top Alerts</div>
@@ -949,6 +943,7 @@ function toggleSection(id){
   setTimeout(()=>{
     if(!$('body-history')?.classList.contains('hidden'))loadAlertHistory();
     if(!$('body-earnings')?.classList.contains('hidden'))loadEarnings();
+    if(window._updateDraggable) window._updateDraggable();
   },50);
 }
 (function(){
@@ -1824,6 +1819,26 @@ function renderSignalSummary(s){
   const ORDER_KEY = 'sb_section_order';
   let dragSrc = null;
 
+  function isCollapsed(wrap){
+    // A section is draggable only when its body is hidden (collapsed)
+    const id = wrap.id.replace('wrap-','');
+    const body = document.getElementById('body-'+id);
+    return !body || body.classList.contains('hidden');
+  }
+
+  function updateDraggable(){
+    document.querySelectorAll('.sec-wrap').forEach(wrap => {
+      const collapsed = isCollapsed(wrap);
+      wrap.draggable = collapsed;
+      const handle = wrap.querySelector('.drag-handle');
+      if(handle){
+        handle.style.opacity   = collapsed ? '' : '0.15';
+        handle.style.cursor    = collapsed ? 'grab' : 'not-allowed';
+        handle.title           = collapsed ? 'Drag to reorder' : 'Collapse section to reorder';
+      }
+    });
+  }
+
   function getSectionOrder(){
     try { return JSON.parse(localStorage.getItem(ORDER_KEY)||'null'); } catch(e){ return null; }
   }
@@ -1848,9 +1863,12 @@ function renderSignalSummary(s){
     const main = document.querySelector('.main');
     if(!main) return;
 
+    // Update draggable state on any click (catches expand/collapse)
+    main.addEventListener('click', () => setTimeout(updateDraggable, 50));
+
     main.addEventListener('dragstart', e => {
       const wrap = e.target.closest('.sec-wrap');
-      if(!wrap) return;
+      if(!wrap || !isCollapsed(wrap)) { e.preventDefault(); return; }
       dragSrc = wrap;
       wrap.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
@@ -1862,6 +1880,7 @@ function renderSignalSummary(s){
       if(wrap) wrap.classList.remove('dragging');
       document.querySelectorAll('.sec-wrap.drag-over').forEach(el=>el.classList.remove('drag-over'));
       saveSectionOrder();
+      updateDraggable();
     });
 
     main.addEventListener('dragover', e => {
@@ -1869,29 +1888,32 @@ function renderSignalSummary(s){
       e.dataTransfer.dropEffect = 'move';
       const wrap = e.target.closest('.sec-wrap');
       document.querySelectorAll('.sec-wrap.drag-over').forEach(el=>el.classList.remove('drag-over'));
-      if(wrap && wrap !== dragSrc) wrap.classList.add('drag-over');
+      if(wrap && wrap !== dragSrc && isCollapsed(wrap)) wrap.classList.add('drag-over');
     });
 
     main.addEventListener('drop', e => {
       e.preventDefault();
       const wrap = e.target.closest('.sec-wrap');
       if(!wrap || wrap === dragSrc || !dragSrc) return;
-      const allWraps = [...main.querySelectorAll('.main > .sec-wrap, .main > div.sec-wrap')];
+      const allWraps = [...main.querySelectorAll(':scope > .sec-wrap')];
       const srcIdx  = allWraps.indexOf(dragSrc);
       const tgtIdx  = allWraps.indexOf(wrap);
       if(tgtIdx > srcIdx) wrap.after(dragSrc);
       else wrap.before(dragSrc);
       wrap.classList.remove('drag-over');
       saveSectionOrder();
+      updateDraggable();
     });
 
-    // Apply stored order on load
     applyStoredOrder();
+    updateDraggable();
   }
 
-  // Run after DOM ready
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initDragDrop);
   else initDragDrop();
+
+  // Expose so toggleSection can trigger update
+  window._updateDraggable = updateDraggable;
 })();
 
 // ── Updated renderScanners — populates individual section grids ───────────────
@@ -1913,29 +1935,6 @@ function renderScanners(scanners){
 }
 
 
-// ── Collapse / Expand All ─────────────────────────────────────────────────────
-function toggleAllSections(){
-  const btn = $('collapseAllBtn');
-  const ALL_IDS = [
-    'alerts','u20','plays','heatmap','earnings','watchlist','history','results',
-    'sc-under5','sc-low_float','sc-short_squeeze','sc-volume_anomaly',
-    'sc-vol_compression','sc-pre_earnings','sc-penny'
-  ];
-  // Check if majority are collapsed
-  const collapsedCount = ALL_IDS.filter(id => $('body-'+id)?.classList.contains('hidden')).length;
-  const shouldExpand = collapsedCount > ALL_IDS.length / 2;
-
-  ALL_IDS.forEach(id => {
-    const body = $('body-'+id);
-    const chev = $('chev-'+id);
-    if(!body) return;
-    body.classList.toggle('hidden', !shouldExpand);
-    chev?.classList.toggle('closed', !shouldExpand);
-    _sectionStates[id] = shouldExpand;
-  });
-  localStorage.setItem('sb_sections', JSON.stringify(_sectionStates));
-  btn.textContent = shouldExpand ? '⊟ Collapse All' : '⊞ Expand All';
-}
 
 loadSettings();
 fetchResults();

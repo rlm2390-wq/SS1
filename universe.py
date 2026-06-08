@@ -7,7 +7,6 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime, timedelta
-from functools import lru_cache
 
 import requests
 
@@ -82,21 +81,53 @@ UNIVERSE_MODES = {
 }
 
 
-@lru_cache(maxsize=1)
-def get_sp500_tickers() -> list[str]:
+# 24-hour TTL cache for S&P 500 list — prevents Wikipedia spam
+_SP500_CACHE: list[str] = []
+_SP500_CACHE_TS: float = 0.0
+_SP500_CACHE_TTL: float = 86400.0   # 24 hours
+
+
+def get_sp500_tickers(force_refresh: bool = False) -> list[str]:
+    global _SP500_CACHE, _SP500_CACHE_TS
+    now = time.time()
+    if not force_refresh and _SP500_CACHE and (now - _SP500_CACHE_TS) < _SP500_CACHE_TTL:
+        return _SP500_CACHE
+
+    # Try cache module first
+    try:
+        import cache as _cache
+        cached = _cache.get_universe_cached("sp500_full")
+        if cached and not force_refresh:
+            _SP500_CACHE    = cached
+            _SP500_CACHE_TS = now
+            return cached
+    except ImportError:
+        pass
+
     if not PD_AVAILABLE:
         logger.warning("pandas unavailable — using fallback S&P 500 list")
-        return list(_SP500_FALLBACK)
+        _SP500_CACHE    = list(_SP500_FALLBACK)
+        _SP500_CACHE_TS = now
+        return _SP500_CACHE
     try:
-        url    = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-        tables = pd.read_html(url, storage_options={"User-Agent": "Mozilla/5.0"})
-        df     = tables[0]
+        url     = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+        tables  = pd.read_html(url, storage_options={"User-Agent": "Mozilla/5.0"})
+        df      = tables[0]
         tickers = [str(t).replace(".", "-") for t in df["Symbol"].tolist()]
         logger.info("Fetched %d S&P 500 tickers from Wikipedia", len(tickers))
+        _SP500_CACHE    = tickers
+        _SP500_CACHE_TS = now
+        try:
+            import cache as _cache
+            _cache.cache_universe("sp500_full", tickers)
+        except ImportError:
+            pass
         return tickers
     except Exception as exc:
         logger.error("S&P 500 fetch failed: %s — using fallback", exc)
-        return list(_SP500_FALLBACK)
+        _SP500_CACHE    = list(_SP500_FALLBACK)
+        _SP500_CACHE_TS = now
+        return _SP500_CACHE
 
 
 # ── IPO calendar ──────────────────────────────────────────────────────────────

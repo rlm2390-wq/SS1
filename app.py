@@ -25,6 +25,9 @@ from under10 import filter_and_rank_under10
 from scanners import run_all_scanners
 from scoring import get_top2_weights, get_current_weights
 from pre_market import start_premarket_thread, get_premarket_results, is_premarket, premarket_status
+from scheduler import start_scheduler_thread
+from dashboard_backend import get_dashboard_state, get_setup_card as db_get_setup_card, log_trade_from_setup
+import cache as _cache_module
 from trade_setup import compute_trade_setup
 from positions import (get_all_positions, add_position, close_position,
                         update_position, delete_position,
@@ -79,7 +82,11 @@ _weight_display   = ""   # e.g. "Tech 34% · Fund 28%"
 _watchlist         = []   # server-side watchlist
 _last_regime     = {"label": "unknown", "score": 0.0}
 _last_scan_time  = None
-_is_scanning     = False
+# ── Scan state machine ────────────────────────────────────────────────────────
+# IDLE → RUNNING → COMPLETE → IDLE
+# Manual scans are queued, never silently dropped.
+_is_scanning      = False
+_scan_queued      = False   # True = a manual scan is waiting for current to finish
 _scan_progress   = {"current": 0, "total": 0, "ticker": ""}
 _last_scan_stats = {"duration_s": None, "tickers_processed": 0, "tickers_skipped": 0, "scan_mode": ""}
 _next_scan_time  = None
@@ -243,8 +250,14 @@ def run_scan_background():
         logger.error("Scan failed: %s", exc, exc_info=True)
     finally:
         with _scan_lock:
-            _is_scanning = False
+            _is_scanning  = False
+            queued        = _scan_queued
+            _scan_queued  = False
         schedule_next_scan()
+        # If a manual scan was queued while we were running, honor it now
+        if queued:
+            logger.info("Running queued manual scan")
+            threading.Thread(target=run_scan_background, daemon=True).start()
 
 
 # ── Single-worker startup guard ──────────────────────────────────────────────
@@ -277,7 +290,8 @@ if _is_primary:
         get_recent_alerts_fn = lambda: [a["ticker"] for a in _last_alerts],
         get_all_results_fn   = lambda: list(_last_results),
     )
-    logger.info("Primary worker started — scan + pre-market threads launched")
+    start_scheduler_thread()   # Webull real-time section scheduler
+    logger.info("Primary worker started — scan + pre-market + Webull scheduler launched")
 else:
     logger.info("Secondary worker started — scan threads skipped")
 
@@ -291,10 +305,17 @@ def index():
 
 @app.route("/api/scan", methods=["POST"])
 def trigger_scan():
+    global _scan_queued
+    data = request.get_json(silent=True) or {}
+    mode = data.get("mode")
+    if mode:
+        UNIVERSE_CONFIG["mode"] = mode
+        logger.info("Universe mode set to: %s", mode)
     with _scan_lock:
         if _is_scanning:
-            logger.info("Scan requested but already running — ignoring")
-            return jsonify({"status": "already_running"})
+            _scan_queued = True
+            logger.info("Scan running — manual scan queued for after completion")
+            return jsonify({"status": "queued"})
     logger.info("Manual scan triggered via /api/scan")
     threading.Thread(target=run_scan_background, daemon=True).start()
     return jsonify({"status": "started"})
@@ -304,24 +325,26 @@ def trigger_scan():
 def api_results():
     with _scan_lock:
         next_scan_iso = _next_scan_time.isoformat() + "Z" if _next_scan_time else None
-        return jsonify({
-            "regime":         _last_regime,
+        state = get_dashboard_state(
+            last_results  = list(_last_results),
+            last_alerts   = list(_last_alerts),
+            last_under20  = list(_last_under20),
+            last_regime   = dict(_last_regime),
+            last_scanners = dict(_last_scanners),
+            scan_stats    = dict(_last_scan_stats),
+            index_data    = dict(_last_index_data),
+        )
+        state.update({
             "scan_time":      _last_scan_time,
             "next_scan_time": next_scan_iso,
             "is_scanning":    _is_scanning,
             "progress":       dict(_scan_progress),
-            "total":          len(_last_results),
-            "alerts":         _last_alerts[:20],
-            "under10":        _last_under20[:20],
-            "top":            _last_results,
-            "pre_signals":    _last_pre_signals,
+            "pre_signals":    list(_last_pre_signals),
             "weight_display": _weight_display,
-            "scanners":       _last_scanners,
-            "index_snapshot": _last_index_data,
-            "premarket":      get_premarket_results(),
-            "signal_summary":  get_mini_summary(),
-            "scan_stats":     dict(_last_scan_stats),
+            "signal_summary": get_mini_summary(),
+            "universe_mode":  UNIVERSE_CONFIG.get("mode", "sp500_top100"),
         })
+        return jsonify(state)
 
 
 
@@ -353,20 +376,36 @@ def trigger_premarket_scan():
 
 @app.route("/api/setup/<ticker>")
 def api_trade_setup(ticker: str):
-    """Compute a full trade setup card for a ticker."""
-    from market_data import get_stock_data
-    from config import HISTORY_CONFIG
+    """Compute a full trade setup card using yfinance history + Webull live price."""
     ticker = ticker.upper()
     with _scan_lock:
         result = next((r for r in _last_results if r["ticker"] == ticker), None)
     if not result:
         return jsonify({"error": "Ticker not in last scan results"}), 404
     try:
-        stock_data = get_stock_data(ticker, HISTORY_CONFIG["lookback_days"])
-        setup      = compute_trade_setup(result, stock_data)
+        from scheduler import get_rt_cache
+        rt_quotes = get_rt_cache().get("quotes", {})
+        setup = db_get_setup_card(ticker, result, rt_quotes)
         return jsonify(setup)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/setup/<ticker>/trade", methods=["POST"])
+def api_log_trade(ticker: str):
+    """Log a trade from the Setup Card confirmation flow."""
+    ticker = ticker.upper()
+    data   = request.get_json(silent=True) or {}
+    entry_price = float(data.get("entry_price", 0))
+    if not entry_price:
+        return jsonify({"error": "entry_price required"}), 400
+    with _scan_lock:
+        result = next((r for r in _last_results if r["ticker"] == ticker), None)
+    if not result:
+        return jsonify({"error": "Ticker not found"}), 404
+    from scheduler import get_rt_cache
+    setup = db_get_setup_card(ticker, result, get_rt_cache().get("quotes", {}))
+    return jsonify(log_trade_from_setup(ticker, entry_price, setup))
 
 
 # ── Position Tracker ──────────────────────────────────────────────────────────
@@ -432,6 +471,50 @@ def api_report():
         return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
+@app.route("/api/rt/quotes")
+def api_rt_quotes():
+    """Return cached Webull real-time quotes for all tracked tickers."""
+    try:
+        from scheduler import get_rt_cache
+        cache = get_rt_cache()
+        return jsonify({
+            "quotes":       cache.get("quotes", {}),
+            "last_updated": cache.get("last_updated", {}),
+            "rt_enabled":   bool(cache.get("quotes")),
+        })
+    except Exception as e:
+        return jsonify({"quotes": {}, "rt_enabled": False, "error": str(e)})
+
+
+
+@app.route("/api/cache/stats")
+def api_cache_stats():
+    """Cache health check."""
+    return jsonify({
+        "cache": _cache_module.stats(),
+        "data_router": __import__("data_router").status(),
+    })
+
+
+@app.route("/api/cache/invalidate", methods=["POST"])
+def api_cache_invalidate():
+    """Force-invalidate specific cache keys. POST {prefix: "stock_data"} or {key: "universe:sp500_full"}."""
+    data   = request.get_json(silent=True) or {}
+    prefix = data.get("prefix")
+    key    = data.get("key")
+    if prefix:
+        n = _cache_module.invalidate_prefix(prefix)
+        return jsonify({"status": "ok", "removed": n, "prefix": prefix})
+    if key:
+        _cache_module.invalidate(key)
+        return jsonify({"status": "ok", "key": key})
+    # Full universe refresh
+    from universe import get_sp500_tickers
+    get_sp500_tickers(force_refresh=True)
+    return jsonify({"status": "ok", "action": "universe_refreshed"})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

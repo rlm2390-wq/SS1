@@ -18,6 +18,7 @@ try:
 except ImportError:
     YF_AVAILABLE = False
 
+import cache as _cache
 from config import (REQUEST_DELAY_SECONDS, REQUEST_MAX_RETRIES,
                     REQUEST_RETRY_BACKOFF)
 
@@ -140,6 +141,11 @@ def get_index_data() -> Dict[str, Any]:
 # ── Stock data ────────────────────────────────────────────────────────────────
 
 def get_stock_data(ticker: str, lookback_days: int = 252) -> Dict[str, Any]:
+    # Check cache first — daily data is valid for 10 minutes
+    cache_key = f"stock_data:{ticker}"
+    cached = _cache.get(cache_key)
+    if cached is not None:
+        return cached
     if not YF_AVAILABLE:
         raise RuntimeError("yfinance not installed")
 
@@ -308,7 +314,7 @@ def get_stock_data(ticker: str, lookback_days: int = 252) -> Dict[str, Any]:
     except Exception:
         pass
 
-    return {
+    result = {
         "ticker":              ticker,
         "sector":              info.get("sector") or info.get("industry") or "Unknown",
         "industry":            info.get("industry", ""),
@@ -343,6 +349,9 @@ def get_stock_data(ticker: str, lookback_days: int = 252) -> Dict[str, Any]:
         "52w_low":             float(prices[-252:].min()) if len(prices) >= 252 else float(prices.min()),
         "market_cap":          _safe(info.get("marketCap"), 0),
     }
+
+    _cache.set(f"stock_data:{ticker}", result, _cache.TTL_DAILY)
+    return result
 
 
 # ── Sector stats ──────────────────────────────────────────────────────────────

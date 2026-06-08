@@ -150,7 +150,7 @@ def scan_low_float(results: List[Dict]) -> List[Dict]:
         # float_ownership sub-score < 0.35 = small float
         sub = r.get("sub_scores", {}).get("structural", {})
         fo  = sub.get("float_ownership", 0.5) if isinstance(sub, dict) else 0.5
-        if fo > 0.40:                         continue   # float too large
+        if fo > 0.50:                         continue   # float too large
 
         if _pre_count(r) < 2:                 continue
         if not bool(setups & (_EXPLOSIVE_SETUPS | _SUPPORTING_SETUPS)): continue
@@ -208,7 +208,7 @@ def scan_short_squeeze(results: List[Dict]) -> List[Dict]:
 
         # Need either squeeze setup OR si_acceleration pre-signal
         if not (has_squeeze_setup or si_pre):  continue
-        if struct < 0.45:                      continue
+        if struct < 0.35:                      continue
         if risk > 0.80:                        continue
 
         # Volume acceleration proxy — from microstructure dollar vol
@@ -265,17 +265,15 @@ def scan_volume_anomaly(results: List[Dict]) -> List[Dict]:
         risk  = r.get("risk", 1.0)
 
         if price < 1.0:            continue
-        if not _liq_ok(r, 0.75):   continue
-        if _pre_count(r) < 1:      continue
-        if risk > 0.70:            continue
+        if risk > 0.75:            continue
 
         # Volume spike proxy: microstructure dollar_vol_accel
         micro   = r.get("microstructure", {})
         sub_ms  = micro.get("sub_scores", {})
         vol_accel = float(sub_ms.get("dollar_vol_accel", 0.5))
 
-        # Need meaningful volume spike (score > 0.65 = approx 1.5–2x baseline)
-        if vol_accel < 0.60:       continue
+        # Lower threshold — 0.50 = moderate volume acceleration
+        if vol_accel < 0.50:       continue
 
         sent = _sent_score(r)
 
@@ -319,8 +317,7 @@ def scan_vol_compression(results: List[Dict]) -> List[Dict]:
         risk  = r.get("risk", 1.0)
 
         if price < 2.0:            continue
-        if _pre_count(r) < 1:      continue
-        if risk > 0.75:            continue
+        if risk > 0.80:            continue
 
         # Volatility compression pre-signal
         fired_pre = r.get("pre_signals", {}).get("signals", [])
@@ -396,7 +393,7 @@ def scan_pre_earnings(results: List[Dict]) -> List[Dict]:
 
         # Sentiment trend
         sent = _sent_score(r)
-        if sent < 0.40:            continue   # need improving sentiment
+        if sent < 0.35:            continue   # need improving sentiment
 
         # Volume trend — from microstructure
         micro   = r.get("microstructure", {})
@@ -549,7 +546,8 @@ def run_all_scanners(results: List[Dict]) -> Dict[str, List[Dict]]:
     Returns a dict keyed by scanner name.
     Each value is a ranked list of enriched result dicts.
     """
-    return {
+    logger.info("Running scanners on %d results", len(results))
+    output = {
         "under5":          scan_under5(results)[:15],
         "low_float":       scan_low_float(results)[:15],
         "short_squeeze":   scan_short_squeeze(results)[:15],
@@ -558,3 +556,6 @@ def run_all_scanners(results: List[Dict]) -> Dict[str, List[Dict]]:
         "pre_earnings":    scan_pre_earnings(results)[:15],
         "penny":           scan_penny(results)[:15],
     }
+    for k, v in output.items():
+        logger.info("Scanner %s: %d candidates", k, len(v))
+    return output

@@ -453,6 +453,37 @@ tr:hover td{background:rgba(255,255,255,.025)}
 
   .market-closed-banner{display:none;align-items:center;gap:8px;padding:6px 14px;background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.2);border-radius:4px;font-size:12px;color:var(--warn)}
   .market-closed-banner.visible{display:flex}
+
+  /* ── Universe inline selector ── */
+  .universe-inline-sel{font-family:'Space Mono',monospace;font-size:12px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.3);color:var(--accent);padding:4px 24px 4px 10px;border-radius:4px;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300ff88'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;flex-shrink:0}
+  .universe-inline-sel:hover{background-color:rgba(0,255,136,.14)}
+  .universe-inline-sel option{background:var(--surface);color:var(--text)}
+
+  /* ── Full width layout ── */
+  .main{max-width:100%;padding:16px 28px}
+  .sec-hdr{width:100%}
+  .sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent);min-width:40px}
+  .alerts-grid{width:100%;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+  .plays-grid{width:100%;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+  .heatmap-grid{width:100%;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .u20-grid{width:100%;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+  .earn-grid{width:100%;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+  .wl-grid{width:100%;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .scanner-grid{width:100%;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .tbl-wrap{width:100%}
+  .stats-bar{grid-template-columns:repeat(4,1fr);width:100%}
+  .pulse-bar{grid-template-columns:repeat(5,1fr);width:100%}
+
+  /* ── Drag to reorder ── */
+  .sec-wrap{transition:opacity .15s}
+  .sec-wrap.dragging{opacity:.4;cursor:grabbing}
+  .sec-wrap.drag-over{border-top:2px solid var(--accent)}
+  .drag-handle{color:var(--muted);font-size:16px;cursor:grab;padding:0 8px 0 0;flex-shrink:0;user-select:none;line-height:1;opacity:.5;transition:opacity .15s}
+  .drag-handle:hover{opacity:1;color:var(--accent)}
+  .drag-handle:active{cursor:grabbing}
+
+  .collapse-all-btn{font-family:'Space Mono',monospace;font-size:12px;padding:5px 14px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:3px;cursor:pointer;transition:all .2s}
+  .collapse-all-btn:hover{border-color:var(--accent2);color:var(--accent2)}
 </style>
 </head>
 <body>
@@ -646,14 +677,7 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <span id="regLabel">–</span>&nbsp;·&nbsp;<span id="regScore">–</span>
   </div>
   <div class="market-closed-banner" id="marketStatusBanner">🌙 Market Closed — showing last available data</div>
-  <select class="hbtn" id="universeSelect" onchange="changeUniverse(this.value)">
-    <option value="sp500_top100">S&P 500 Top 100</option>
-    <option value="sp500_full">S&P 500 Full</option>
-    <option value="small_caps">Small Caps</option>
-    <option value="under20">Under $20</option>
-    <option value="high_short_interest">High Short Interest</option>
-    <option value="watchlist">My Watchlist</option>
-  </select>
+
   <div class="header-spacer"></div>
   <span class="countdown" id="countdown"></span>
   <button class="hbtn" onclick="openDrawer('positions');loadPositions()">📋 Positions</button>
@@ -719,10 +743,27 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="stat-card"><div class="stat-label">Regime Score</div><div class="stat-value" id="stRegScore" style="font-size:16px;margin-top:4px">–</div><div class="stat-sub" id="stRegLabel">–</div></div>
   </div>
 
-  <div class="sec-hdr" onclick="toggleSection('alerts')"><div class="sec-title">🔔 Top Alerts</div><div class="sec-line"></div><div class="sec-count" id="cntAlerts">0</div><span class="sec-chev" id="chev-alerts">▾</span></div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:8px;gap:8px">
+    <button class="collapse-all-btn" id="collapseAllBtn" onclick="toggleAllSections()">⊟ Collapse All</button>
+  </div>
+  <div class="sec-wrap" id="wrap-alerts" draggable="true">
+  <div class="sec-hdr" style="cursor:default"><span class="drag-handle">⠿</span>
+    <div class="sec-title" onclick="toggleSection('alerts')" style="cursor:pointer">🔔 Top Alerts</div>
+    <select class="universe-inline-sel" id="universeSelect" onchange="changeUniverse(this.value)">
+      <option value="sp500_top100">S&amp;P 500 Top 100</option>
+      <option value="sp500_full">S&amp;P 500 Full</option>
+      <option value="small_caps">Small Caps</option>
+      <option value="high_short_interest">High Short Interest</option>
+      <option value="watchlist">My Watchlist</option>
+    </select>
+    <div class="sec-line"></div>
+    <div class="sec-count" id="cntAlerts">0</div>
+    <span class="sec-chev" id="chev-alerts" onclick="toggleSection('alerts')" style="cursor:pointer">▾</span>
+  </div>
   <div class="sec-body" id="body-alerts"><div class="alerts-grid" id="alertsGrid"><div class="empty"><div class="empty-icon">📡</div><div class="empty-text">First scan takes ~60 seconds…</div></div></div></div>
 
-  <div class="sec-hdr" onclick="toggleSection('u20')"><div class="sec-title">⚡ Under $10 — High Potential</div><div class="sec-line"></div><div class="sec-count" id="cntU20">0</div><span class="sec-chev" id="chev-u20">▾</span></div>
+  <div class="sec-wrap" id="wrap-u20" draggable="true">
+  <div class="sec-hdr" onclick="toggleSection('u20')"><span class="drag-handle">⠿</span><div class="sec-title">⚡ Under $10 — High Potential</div><div class="sec-line"></div><div class="sec-count" id="cntU20">0</div><span class="sec-chev" id="chev-u20">▾</span></div>
   <div class="sec-body" id="body-u20">
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
       Requires 2+ pre-signals + explosive setup + $1M+ daily volume. Sorted by signal strength.
@@ -732,7 +773,8 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="u20-grid" id="u20Grid"><div class="empty" style="padding:24px"><div class="empty-text">No Under $10 candidates passed all filters yet.</div></div></div>
   </div>
 
-  <div class="sec-hdr" onclick="toggleSection('plays')"><div class="sec-title">🎯 Options Plays</div><div class="sec-line"></div><div class="sec-count" id="cntPlays">0</div><span class="sec-chev" id="chev-plays">▾</span></div>
+  <div class="sec-wrap" id="wrap-plays" draggable="true">
+  <div class="sec-hdr" onclick="toggleSection('plays')"><span class="drag-handle">⠿</span><div class="sec-title">🎯 Options Plays</div><div class="sec-line"></div><div class="sec-count" id="cntPlays">0</div><span class="sec-chev" id="chev-plays">▾</span></div>
   <div class="sec-body" id="body-plays">
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Directional and premium-collection plays from live options chains. Not financial advice.</div>
     <div class="plays-tabs">
@@ -743,39 +785,59 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="plays-grid" id="playsGrid"><div class="empty"><div class="empty-icon">🎯</div><div class="empty-text">Options plays generated after first scan.</div></div></div>
   </div>
 
-  <div class="sec-hdr" onclick="toggleSection('heatmap')"><div class="sec-title">🗺 Sector Heatmap</div><div class="sec-line"></div><span class="sec-chev" id="chev-heatmap">▾</span></div>
+  <div class="sec-wrap" id="wrap-heatmap" draggable="true">
+  <div class="sec-hdr" onclick="toggleSection('heatmap')"><span class="drag-handle">⠿</span><div class="sec-title">🗺 Sector Heatmap</div><div class="sec-line"></div><span class="sec-chev" id="chev-heatmap">▾</span></div>
   <div class="sec-body" id="body-heatmap">
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Average UpsideScore by sector. Click to filter results table.</div>
     <div class="heatmap-grid" id="heatmapGrid"><div class="empty" style="padding:24px"><div class="empty-text">Populates after first scan.</div></div></div>
   </div>
 
 
-  <!-- Discovery Scanners -->
-  <div class="sec-hdr" onclick="toggleSection('scanners')">
-    <div class="sec-title">🔬 Discovery Scanners</div>
-    <div class="sec-line"></div>
-    <div class="sec-count" id="cntScanners">0</div>
-    <span class="sec-chev" id="chev-scanners">▾</span>
+  <!-- Discovery Scanner Sections (individual) -->
+  <div class="sec-wrap" id="wrap-sc-under5" draggable="true">
+    <div class="sec-hdr"><span class="drag-handle">⠿</span><div class="sec-title" onclick="toggleSection('sc-under5')" style="cursor:pointer">💥 Under $5 — High Risk / High Reward</div><div class="sec-line"></div><div class="sec-count" id="cntSc-under5">0</div><span class="sec-chev" id="chev-sc-under5" onclick="toggleSection('sc-under5')" style="cursor:pointer">▾</span></div>
+    <div class="sec-body" id="body-sc-under5"><div class="scanner-grid" id="grid-sc-under5"><div class="empty"><div class="empty-text">Populates after first scan.</div></div></div></div>
   </div>
-  <div class="sec-body" id="body-scanners">
-    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Six specialized signal scanners running on every scan. Each uses its own filter logic and scoring formula.</div>
-    <div class="scanners-wrap" id="scannersWrap">
-      <div class="empty"><div class="empty-icon" style="font-size:32px">🔬</div><div class="empty-text" style="font-size:13px">Scanners populate after first scan.</div></div>
-    </div>
+  <div class="sec-wrap" id="wrap-sc-low_float" draggable="true">
+    <div class="sec-hdr"><span class="drag-handle">⠿</span><div class="sec-title" onclick="toggleSection('sc-low_float')" style="cursor:pointer">🚀 Low Float Rockets</div><div class="sec-line"></div><div class="sec-count" id="cntSc-low_float">0</div><span class="sec-chev" id="chev-sc-low_float" onclick="toggleSection('sc-low_float')" style="cursor:pointer">▾</span></div>
+    <div class="sec-body" id="body-sc-low_float"><div class="scanner-grid" id="grid-sc-low_float"><div class="empty"><div class="empty-text">Populates after first scan.</div></div></div></div>
+  </div>
+  <div class="sec-wrap" id="wrap-sc-short_squeeze" draggable="true">
+    <div class="sec-hdr"><span class="drag-handle">⠿</span><div class="sec-title" onclick="toggleSection('sc-short_squeeze')" style="cursor:pointer">🗜️ Short Squeeze Watchlist</div><div class="sec-line"></div><div class="sec-count" id="cntSc-short_squeeze">0</div><span class="sec-chev" id="chev-sc-short_squeeze" onclick="toggleSection('sc-short_squeeze')" style="cursor:pointer">▾</span></div>
+    <div class="sec-body" id="body-sc-short_squeeze"><div class="scanner-grid" id="grid-sc-short_squeeze"><div class="empty"><div class="empty-text">Populates after first scan.</div></div></div></div>
+  </div>
+  <div class="sec-wrap" id="wrap-sc-volume_anomaly" draggable="true">
+    <div class="sec-hdr"><span class="drag-handle">⠿</span><div class="sec-title" onclick="toggleSection('sc-volume_anomaly')" style="cursor:pointer">📊 Volume Anomalies</div><div class="sec-line"></div><div class="sec-count" id="cntSc-volume_anomaly">0</div><span class="sec-chev" id="chev-sc-volume_anomaly" onclick="toggleSection('sc-volume_anomaly')" style="cursor:pointer">▾</span></div>
+    <div class="sec-body" id="body-sc-volume_anomaly"><div class="scanner-grid" id="grid-sc-volume_anomaly"><div class="empty"><div class="empty-text">Populates after first scan.</div></div></div></div>
+  </div>
+  <div class="sec-wrap" id="wrap-sc-vol_compression" draggable="true">
+    <div class="sec-hdr"><span class="drag-handle">⠿</span><div class="sec-title" onclick="toggleSection('sc-vol_compression')" style="cursor:pointer">🌀 Volatility Compression</div><div class="sec-line"></div><div class="sec-count" id="cntSc-vol_compression">0</div><span class="sec-chev" id="chev-sc-vol_compression" onclick="toggleSection('sc-vol_compression')" style="cursor:pointer">▾</span></div>
+    <div class="sec-body" id="body-sc-vol_compression"><div class="scanner-grid" id="grid-sc-vol_compression"><div class="empty"><div class="empty-text">Populates after first scan.</div></div></div></div>
+  </div>
+  <div class="sec-wrap" id="wrap-sc-pre_earnings" draggable="true">
+    <div class="sec-hdr"><span class="drag-handle">⠿</span><div class="sec-title" onclick="toggleSection('sc-pre_earnings')" style="cursor:pointer">📅 Pre-Earnings Momentum</div><div class="sec-line"></div><div class="sec-count" id="cntSc-pre_earnings">0</div><span class="sec-chev" id="chev-sc-pre_earnings" onclick="toggleSection('sc-pre_earnings')" style="cursor:pointer">▾</span></div>
+    <div class="sec-body" id="body-sc-pre_earnings"><div class="scanner-grid" id="grid-sc-pre_earnings"><div class="empty"><div class="empty-text">Populates after first scan.</div></div></div></div>
+  </div>
+  <div class="sec-wrap" id="wrap-sc-penny" draggable="true">
+    <div class="sec-hdr"><span class="drag-handle">⠿</span><div class="sec-title" onclick="toggleSection('sc-penny')" style="cursor:pointer">🪙 Penny Stocks — High Conviction Only</div><div class="sec-line"></div><div class="sec-count" id="cntSc-penny">0</div><span class="sec-chev" id="chev-sc-penny" onclick="toggleSection('sc-penny')" style="cursor:pointer">▾</span></div>
+    <div class="sec-body" id="body-sc-penny"><div class="scanner-grid" id="grid-sc-penny"><div class="empty"><div class="empty-text">Populates after first scan.</div></div></div></div>
   </div>
 
-  <div class="sec-hdr" onclick="toggleSection('earnings')"><div class="sec-title">📅 Earnings Calendar</div><div class="sec-line"></div><div class="sec-count" id="cntEarnings">0</div><span class="sec-chev" id="chev-earnings">▾</span></div>
+  <div class="sec-wrap" id="wrap-earnings" draggable="true">
+  <div class="sec-hdr" onclick="toggleSection('earnings')"><span class="drag-handle">⠿</span><div class="sec-title">📅 Earnings Calendar</div><div class="sec-line"></div><div class="sec-count" id="cntEarnings">0</div><span class="sec-chev" id="chev-earnings">▾</span></div>
   <div class="sec-body" id="body-earnings">
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Tickers in universe with earnings in the next 14 days.</div>
     <div class="earn-grid" id="earningsGrid"><div class="empty" style="padding:24px"><div class="empty-text">Loading earnings calendar…</div></div></div>
   </div>
 
-  <div class="sec-hdr" onclick="toggleSection('watchlist')"><div class="sec-title">📌 Watchlist</div><div class="sec-line"></div><div class="sec-count" id="cntWatchlist">0</div><span class="sec-chev" id="chev-watchlist">▾</span></div>
+  <div class="sec-wrap" id="wrap-watchlist" draggable="true">
+  <div class="sec-hdr" onclick="toggleSection('watchlist')"><span class="drag-handle">⠿</span><div class="sec-title">📌 Watchlist</div><div class="sec-line"></div><div class="sec-count" id="cntWatchlist">0</div><span class="sec-chev" id="chev-watchlist">▾</span></div>
   <div class="sec-body" id="body-watchlist">
     <div class="wl-grid" id="wlGrid"><div class="empty" style="padding:24px"><div class="empty-text">Click the ★ Watchlist button on any alert card to pin tickers here.</div></div></div>
   </div>
 
-  <div class="sec-hdr" onclick="toggleSection('history')"><div class="sec-title">📜 Alert History</div><div class="sec-line"></div><div class="sec-count" id="cntHistory">0</div><span class="sec-chev" id="chev-history">▾</span></div>
+  <div class="sec-wrap" id="wrap-history" draggable="true">
+  <div class="sec-hdr" onclick="toggleSection('history')"><span class="drag-handle">⠿</span><div class="sec-title">📜 Alert History</div><div class="sec-line"></div><div class="sec-count" id="cntHistory">0</div><span class="sec-chev" id="chev-history">▾</span></div>
   <div class="sec-body" id="body-history">
     <div class="tbl-wrap" style="margin-bottom:0">
       <table class="hist-table">
@@ -785,7 +847,8 @@ tr:hover td{background:rgba(255,255,255,.025)}
     </div>
   </div>
 
-  <div class="sec-hdr" onclick="toggleSection('results')"><div class="sec-title">📊 All Results</div><div class="sec-line"></div><div class="sec-count" id="cntResults">0</div><span class="sec-chev" id="chev-results">▾</span></div>
+  <div class="sec-wrap" id="wrap-results" draggable="true">
+  <div class="sec-hdr" onclick="toggleSection('results')"><span class="drag-handle">⠿</span><div class="sec-title">📊 All Results</div><div class="sec-line"></div><div class="sec-count" id="cntResults">0</div><span class="sec-chev" id="chev-results">▾</span></div>
   <div class="sec-body" id="body-results">
     <div class="filter-bar" style="margin-bottom:8px">
       <input class="filter-in" id="ftTicker" type="text" placeholder="Ticker…" oninput="applyFilters()">
@@ -888,7 +951,24 @@ function toggleSection(id){
     if(!$('body-earnings')?.classList.contains('hidden'))loadEarnings();
   },50);
 }
-(function(){Object.entries(_sectionStates).forEach(([id,open])=>{if(open===false){$('body-'+id)?.classList.add('hidden');$('chev-'+id)?.classList.add('closed');}});})();
+(function(){
+  // Default all sections to collapsed if no stored preference
+  const ALL_SECTION_IDS = [
+    'alerts','u20','plays','heatmap','earnings','watchlist','history','results',
+    'sc-under5','sc-low_float','sc-short_squeeze','sc-volume_anomaly',
+    'sc-vol_compression','sc-pre_earnings','sc-penny'
+  ];
+  ALL_SECTION_IDS.forEach(id => {
+    // If no stored state, default to collapsed
+    if(_sectionStates[id] === undefined) _sectionStates[id] = false;
+  });
+  Object.entries(_sectionStates).forEach(([id,open])=>{
+    if(open===false){
+      $('body-'+id)?.classList.add('hidden');
+      $('chev-'+id)?.classList.add('closed');
+    }
+  });
+})();
 
 function openDrawer(type){$(`${type}Overlay`).classList.add('on');$(`${type}Drawer`).classList.add('on');document.body.style.overflow='hidden';}
 function closeDrawer(type){$(`${type}Overlay`).classList.remove('on');$(`${type}Drawer`).classList.remove('on');document.body.style.overflow='';}
@@ -1736,6 +1816,125 @@ function renderSignalSummary(s){
   if($('ssWR') && wr != null){
     $('ssWR').style.color = wr >= 60 ? 'var(--accent)' : wr >= 45 ? 'var(--warn)' : 'var(--danger)';
   }
+}
+
+
+// ── Drag-to-reorder sections ──────────────────────────────────────────────────
+(function(){
+  const ORDER_KEY = 'sb_section_order';
+  let dragSrc = null;
+
+  function getSectionOrder(){
+    try { return JSON.parse(localStorage.getItem(ORDER_KEY)||'null'); } catch(e){ return null; }
+  }
+
+  function saveSectionOrder(){
+    const wraps = [...document.querySelectorAll('.main > .sec-wrap')];
+    localStorage.setItem(ORDER_KEY, JSON.stringify(wraps.map(w=>w.id)));
+  }
+
+  function applyStoredOrder(){
+    const order = getSectionOrder();
+    if(!order||!order.length) return;
+    const main = document.querySelector('.main');
+    if(!main) return;
+    order.forEach(id => {
+      const el = document.getElementById(id);
+      if(el && el.parentNode === main) main.appendChild(el);
+    });
+  }
+
+  function initDragDrop(){
+    const main = document.querySelector('.main');
+    if(!main) return;
+
+    main.addEventListener('dragstart', e => {
+      const wrap = e.target.closest('.sec-wrap');
+      if(!wrap) return;
+      dragSrc = wrap;
+      wrap.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', wrap.id);
+    });
+
+    main.addEventListener('dragend', e => {
+      const wrap = e.target.closest('.sec-wrap');
+      if(wrap) wrap.classList.remove('dragging');
+      document.querySelectorAll('.sec-wrap.drag-over').forEach(el=>el.classList.remove('drag-over'));
+      saveSectionOrder();
+    });
+
+    main.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const wrap = e.target.closest('.sec-wrap');
+      document.querySelectorAll('.sec-wrap.drag-over').forEach(el=>el.classList.remove('drag-over'));
+      if(wrap && wrap !== dragSrc) wrap.classList.add('drag-over');
+    });
+
+    main.addEventListener('drop', e => {
+      e.preventDefault();
+      const wrap = e.target.closest('.sec-wrap');
+      if(!wrap || wrap === dragSrc || !dragSrc) return;
+      const allWraps = [...main.querySelectorAll('.main > .sec-wrap, .main > div.sec-wrap')];
+      const srcIdx  = allWraps.indexOf(dragSrc);
+      const tgtIdx  = allWraps.indexOf(wrap);
+      if(tgtIdx > srcIdx) wrap.after(dragSrc);
+      else wrap.before(dragSrc);
+      wrap.classList.remove('drag-over');
+      saveSectionOrder();
+    });
+
+    // Apply stored order on load
+    applyStoredOrder();
+  }
+
+  // Run after DOM ready
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initDragDrop);
+  else initDragDrop();
+})();
+
+// ── Updated renderScanners — populates individual section grids ───────────────
+function renderScanners(scanners){
+  if(!scanners || !Object.keys(scanners).length) return;
+
+  const SC_KEYS = ['under5','low_float','short_squeeze','volume_anomaly','vol_compression','pre_earnings','penny'];
+
+  SC_KEYS.forEach(key => {
+    const items   = (scanners[key] || []).slice(0, 12);
+    const gridEl  = document.getElementById(`grid-sc-${key}`);
+    const countEl = document.getElementById(`cntSc-${key}`);
+    if(!gridEl) return;
+    if(countEl) countEl.textContent = items.length;
+    gridEl.innerHTML = items.length
+      ? items.map(r => renderScannerCard(r, key)).join('')
+      : '<div style="padding:18px 14px;color:var(--muted);font-size:13px">No candidates this scan.</div>';
+  });
+}
+
+
+// ── Collapse / Expand All ─────────────────────────────────────────────────────
+function toggleAllSections(){
+  const btn = $('collapseAllBtn');
+  const ALL_IDS = [
+    'alerts','u20','plays','heatmap','earnings','watchlist','history','results',
+    'sc-under5','sc-low_float','sc-short_squeeze','sc-volume_anomaly',
+    'sc-vol_compression','sc-pre_earnings','sc-penny'
+  ];
+  // Check if majority are collapsed
+  const collapsedCount = ALL_IDS.filter(id => $('body-'+id)?.classList.contains('hidden')).length;
+  const shouldExpand = collapsedCount > ALL_IDS.length / 2;
+
+  ALL_IDS.forEach(id => {
+    const body = $('body-'+id);
+    const chev = $('chev-'+id);
+    if(!body) return;
+    body.classList.toggle('hidden', !shouldExpand);
+    chev?.classList.toggle('closed', !shouldExpand);
+    _sectionStates[id] = shouldExpand;
+  });
+  localStorage.setItem('sb_sections', JSON.stringify(_sectionStates));
+  btn.textContent = shouldExpand ? '⊟ Collapse All' : '⊞ Expand All';
 }
 
 loadSettings();

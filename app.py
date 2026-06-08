@@ -531,6 +531,31 @@ def api_cache_invalidate():
     get_sp500_tickers(force_refresh=True)
     return jsonify({"status": "ok", "action": "universe_refreshed"})
 
+
+
+@app.route("/api/debug/scanner")
+def api_debug_scanner():
+    """Show first result dict so we can verify scanner field structure."""
+    with _scan_lock:
+        if not _last_results:
+            return jsonify({"error": "No results yet"})
+        sample = _last_results[0]
+        return jsonify({
+            "ticker":           sample.get("ticker"),
+            "last_price":       sample.get("last_price"),
+            "risk":             sample.get("risk"),
+            "pre_signals_keys": list((sample.get("pre_signals") or {}).keys()),
+            "pre_signal_count": (sample.get("pre_signals") or {}).get("signal_count", 0),
+            "microstructure_keys": list((sample.get("microstructure") or {}).keys()),
+            "micro_sub_keys":   list(((sample.get("microstructure") or {}).get("sub_scores") or {}).keys()),
+            "dollar_vol_accel": ((sample.get("microstructure") or {}).get("sub_scores") or {}).get("dollar_vol_accel"),
+            "sub_scores_keys":  list((sample.get("sub_scores") or {}).keys()),
+            "risk_sub_keys":    list(((sample.get("sub_scores") or {}).get("risk") or {}).keys()),
+            "struct_sub_keys":  list(((sample.get("sub_scores") or {}).get("structural") or {}).keys()),
+            "setups":           sample.get("setups"),
+            "scanner_results":  {k: len(v) for k, v in _last_scanners.items()},
+        })
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     logger.info("Starting Flask server on port %d", port)

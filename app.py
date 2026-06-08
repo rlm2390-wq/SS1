@@ -107,8 +107,10 @@ def schedule_next_scan():
 
 
 def run_scan_background():
+    global _is_scanning, _scan_queued, _scan_progress
     global _last_results, _last_alerts, _last_under20, _last_regime, _last_scan_time
-    global _is_scanning, _scan_progress, _last_scan_stats, _last_pre_signals, _weight_display, _scan_count, _last_scanners, _last_index_data, _last_sector_scores, _last_sector_deltas
+    global _last_scan_stats, _last_pre_signals, _weight_display, _scan_count
+    global _last_scanners, _last_index_data, _last_sector_scores, _last_sector_deltas
 
     with _scan_lock:
         _is_scanning   = True
@@ -263,9 +265,10 @@ def run_scan_background():
         logger.error("Scan failed: %s", exc, exc_info=True)
     finally:
         with _scan_lock:
-            _is_scanning  = False
-            queued        = _scan_queued
-            _scan_queued  = False
+            global _scan_queued
+            _is_scanning = False
+            queued = _scan_queued
+            _scan_queued = False
         schedule_next_scan()
         # If a manual scan was queued while we were running, honor it now
         if queued:

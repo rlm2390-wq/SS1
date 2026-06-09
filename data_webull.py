@@ -58,7 +58,7 @@ def _headers(app_key: str, app_secret: str, path: str, body: str = "") -> Dict[s
         "Content-Type":   "application/json",
         "App-Key":        app_key,
         "Timestamp":      ts,
-        "Sign":           _sign(app_secret, ts, path, body),
+        "Sign":           _sign(app_secret, ts, path + body),
     }
 
 
@@ -125,13 +125,68 @@ class WebullClient:
         self._simulator = _PaperSimulator()
         self._enabled = WEBULL_ENABLED and bool(app_key) and bool(app_secret)
 
+        # auth state
+        self._access_token: Optional[str] = None
+        self._token_expiry: float = 0.0
+
+        if self._enabled:
+            self.authenticate()
+
+    # ── Authentication ───────────────────────────────────────────────────────
+
+    def authenticate(self) -> bool:
+        """
+        Authenticate with Webull Open API using client_credentials.
+        Stores access_token for subsequent requests.
+        """
+        if not self._enabled:
+            return False
+
+        path = "/auth/token"
+        payload = {
+            "appKey": self._key,
+            "appSecret": self._secret,
+            "grantType": "client_credentials"
+        }
+        body = json.dumps(payload, separators=(",", ":"))
+        url = _BASE_QUOTE + path
+        headers = {"Content-Type": "application/json"}
+
+        try:
+            resp = self._session.post(url, headers=headers, data=body, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+
+            self._access_token = data.get("accessToken")
+            expires_in = int(data.get("expiresIn", 3600))
+            self._token_expiry = time.time() + expires_in
+
+            if self._access_token:
+                logger.info("WebullClient: authenticated successfully")
+                return True
+            else:
+                logger.error("WebullClient: authentication failed: %s", data)
+                return False
+        except Exception as e:
+            logger.error("WebullClient: authentication error: %s", e)
+            return False
+
+    def _ensure_token(self) -> None:
+        if not self._enabled:
+            return
+        if not self._access_token or time.time() >= self._token_expiry:
+            self.authenticate()
+
     # ── Internal HTTP helpers ─────────────────────────────────────────────────
 
     def _get(self, path: str, params: Optional[Dict] = None) -> Any:
         if not self._enabled:
             return {}
+        self._ensure_token()
         url = _BASE_QUOTE + path
         hdrs = _headers(self._key, self._secret, path)
+        if self._access_token:
+            hdrs["Access-Token"] = self._access_token
         for attempt in range(REQUEST_MAX_RETRIES):
             try:
                 resp = self._session.get(url, headers=hdrs, params=params, timeout=8)
@@ -142,7 +197,7 @@ class WebullClient:
                     continue
                 resp.raise_for_status()
                 data = resp.json()
-                if data.get("code") not in (None, 0, "0"):
+                if isinstance(data, dict) and data.get("code") not in (None, 0, "0"):
                     logger.warning("Webull API error: %s", data.get("msg", data))
                 return data
             except Exception as e:
@@ -154,14 +209,18 @@ class WebullClient:
     def _post(self, path: str, payload: Dict) -> Any:
         if not self._enabled:
             return {}
+        self._ensure_token()
         url   = _BASE_TRADE + path
         body  = json.dumps(payload, separators=(",", ":"))
         hdrs  = _headers(self._key, self._secret, path, body)
+        if self._access_token:
+            hdrs["Access-Token"] = self._access_token
         for attempt in range(REQUEST_MAX_RETRIES):
             try:
                 resp = self._session.post(url, headers=hdrs, data=body, timeout=10)
                 if resp.status_code == 429:
                     wait = REQUEST_RETRY_BACKOFF ** (attempt + 1)
+                    logger.warning("Webull rate limit — waiting %.1fs", wait)
                     time.sleep(wait)
                     continue
                 resp.raise_for_status()
